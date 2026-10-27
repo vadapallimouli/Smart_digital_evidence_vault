@@ -6,7 +6,7 @@
 
 | S. No. | Name | Register Number |
 |---|---|---|
-| 1 | H. Bala Sri Siva Sai Surya Teja | CB.AI.U4AID25017 |
+| 1 | H. Bala Sri Siva Sai Surya Tej | CB.AI.U4AID25017 |
 | 2 | V. Mouli Sri | CB.AI.U4AID25066 |
 | 3 | B. Sharmitha | CB.AI.U4AID25007 |
 | 4 | C. Jasmitha | CB.AI.U4AID25011 |
