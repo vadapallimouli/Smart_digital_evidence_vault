@@ -1,55 +1,187 @@
-# MerkleVault — Smart Digital Evidence Management (Python DSA edition)
+# 🔐 MerkleVault — Smart Digital Evidence Management System
 
-The screens, login (3 departments × 4 authorities), 13-step approval workflow,
-case reports and digital signature are exactly as before (`static/index.html`).
-**Every data-structure / algorithm operation now runs in Python** (`dsa.py`).
+**MerkleVault** is a digital evidence management system designed to securely store, organize, verify, and manage digital evidence. It uses **SHA-256 cryptographic hashing and Merkle Trees** to detect evidence tampering and maintain data integrity.
 
-## Run
+The system also incorporates data structures and intelligent content-based analysis to identify exact duplicates and potentially modified digital evidence.
+
+## 🎯 Project Objectives
+
+- Securely manage digital evidence associated with individual cases.
+- Generate unique cryptographic fingerprints for evidence files.
+- Detect unauthorized modifications through hash verification.
+- Use Merkle Trees to verify the integrity of multiple evidence files.
+- Identify duplicate evidence and filename conflicts.
+- Support efficient evidence searching and organization.
+- Provide a simple interface for interacting with the evidence management system.
+
+## ✨ Key Features
+
+### 1. Cryptographic Fingerprinting
+Uses the SHA-256 hashing algorithm to generate a fingerprint for each evidence file. Changes to the file content result in a different hash, helping identify modifications.
+
+### 2. Merkle Tree Integrity Verification
+Combines individual evidence hashes into a Merkle Tree and generates a Merkle Root representing the collection's integrity.
+
+### 3. Evidence Tampering Detection
+Recalculates evidence hashes and compares them with their originally stored fingerprints to identify possible tampering.
+
+### 4. Duplicate Evidence Detection
+Uses hash-based indexing to identify exact duplicate files, even when their filenames differ.
+
+### 5. Filename Conflict Detection
+Identifies conflicts when different file contents are submitted under an already-used filename.
+
+### 6. Data Structures for Efficient Management
+Uses data structures such as hash maps, lists, and tries to support evidence indexing, organization, and search operations.
+
+### 7. Evidence Management Interface
+Provides a web interface for interacting with the application and accessing supported evidence-management operations.
+
+## 🛠️ Technologies Used
+
+- **Python** — Core application logic
+- **Flask** — Web application framework, if used by the current implementation
+- **HTML, CSS, JavaScript** — Web interface
+- **SHA-256** — Cryptographic hashing
+- **Merkle Trees** — Integrity verification
+- **Hash Maps and Tries** — Data organization and searching
+
+## 📂 Project Structure
+
+```text
+MerkleVault/
+├── README.md
+├── requirements.txt
+├── app.py
+├── demo.py
+├── dsa.py
+└── static/
+    └── index.html
+```
+
+| File or Folder | Description |
+|---|---|
+| `app.py` | Main application and server logic |
+| `demo.py` | Demonstration of project functionality |
+| `dsa.py` | Data structures and algorithms used in the project |
+| `requirements.txt` | Python dependency list |
+| `static/index.html` | Web interface |
+| `README.md` | Project documentation |
+
+## ⚙️ Installation and Setup
+
+### Prerequisites
+
+- Python 3 installed
+- Git installed
+- A terminal or command-line interface
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/vadapallimouli/Smart_digital_evidence_vault.git
+```
+
+### Step 2: Navigate to the Project
+
+```bash
+cd Smart_digital_evidence_vault
+```
+
+If the project files are inside the `MerkleVault` subfolder, enter it:
+
+```bash
+cd MerkleVault
+```
+
+Run commands from the directory containing `app.py` and `requirements.txt`.
+
+### Step 3: Create a Virtual Environment
+
+```bash
+python3 -m venv venv
+```
+
+Activate it on macOS or Linux:
+
+```bash
+source venv/bin/activate
+```
+
+On Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+### Step 4: Install Dependencies
 
 ```bash
 pip install -r requirements.txt
-python app.py            # then open  http://localhost:5000
 ```
 
-Do **not** open `static/index.html` by double-clicking — it needs the Python server.
-To see the algorithms in the terminal only (no browser):  `python demo.py`
+### Step 5: Run the Application
 
-## Files
+For the web application:
 
-| File | What it is |
+```bash
+python3 app.py
+```
+
+For the demonstration script:
+
+```bash
+python3 demo.py
+```
+
+Follow the terminal output to determine how to access the application.
+
+> **Note:** The exact commands and available features depend on the current implementation of `app.py`, `demo.py`, and `requirements.txt`.
+
+## 🔍 How It Works
+
+1. **Evidence Input:** A digital evidence file is submitted to the system.
+2. **Fingerprint Generation:** The system calculates the file's SHA-256 hash.
+3. **Evidence Indexing:** The hash and associated evidence information are indexed.
+4. **Duplicate Checking:** The system checks whether identical content already exists.
+5. **Merkle Tree Construction:** Evidence hashes are combined to generate a Merkle Root.
+6. **Integrity Verification:** The system recalculates hashes and compares them with the stored fingerprints.
+7. **Tampering Detection:** A mismatch indicates that the evidence content may have changed.
+
+## 🧮 Data Structures and Algorithms
+
+| Technique | Purpose |
 |---|---|
-| `dsa.py` | All DSA code: SHA-256, Hash Map, Trie, Merkle Tree, content chunking, similarity, classification, `EvidenceVault` |
-| `app.py` | Small Flask server that exposes `dsa.py` to the HTML page |
-| `static/index.html` | The user interface (login, dashboards, workflow, reports) |
-| `demo.py` | Terminal walk-through of every algorithm |
+| SHA-256 hashing | Generates cryptographic fingerprints |
+| Hash map | Supports fast hash-based lookups |
+| Merkle Tree | Combines evidence hashes for integrity checking |
+| Trie | Supports structured text or prefix-based searching |
+| Lists and dictionaries | Store and organize evidence records |
 
-## How to explain each DSA to your faculty
+## 🔒 Security and Limitations
 
-| Concept | Where in `dsa.py` | Idea | Complexity |
-|---|---|---|---|
-| **SHA-256** | `sha256_bytes()` | File → 64-hex fingerprint; any change gives a different one | O(file size) |
-| **Hash Map** | `EvidenceVault.hash_index`, `name_index`, `case_index` (Python `dict`) | Fingerprint → evidence id, so an exact duplicate is found instantly | O(1) |
-| **Trie** | `class Trie`, `TrieNode` | Evidence names / ids / keywords stored letter by letter; prefix search walks one node per letter | O(length of query) |
-| **Merkle Tree** | `build_merkle_tree()` | Leaves = file hashes, parent = SHA-256(left+right); the root proves the whole case is unchanged | O(n) build |
-| **Content-defined chunking** | `chunk_bytes()` | A rolling *gear hash* decides chunk boundaries from the content, so deleting bytes in the middle does not shift later chunks | O(file size) |
-| **Set/Map similarity** | `similarity()` | Share of old chunks still present in the new file → "80 % intact" | O(chunks) |
-| **Classification** | `classify()` | MIME type / extension → Image, Video, Audio, PDF, Document | O(1) |
+- SHA-256 hashes help detect changes to file contents.
+- A Merkle Root can help verify the integrity of a collection of evidence.
+- A hash alone does not prove who created or submitted a file.
+- A production digital forensics system would also need secure access controls, audit logs, protected hash storage, and appropriate evidence-handling procedures.
+- The project is an academic prototype and should not be treated as a certified forensic evidence platform.
 
-## Upload pipeline (`EvidenceVault.ingest`)
+## 🚀 Future Enhancements
 
-```
-SHA-256  →  exact duplicate?  →  edited copy of stored evidence?  →  filename already used?  →  classify + store + Trie index
-            (hash map)           (chunk similarity ≥ 25 %)            (name without extension)
-```
+- Role-based access for investigators and administrators.
+- Detailed evidence access and modification logs.
+- Secure evidence backups and recovery.
+- Advanced duplicate and modified-file analysis.
+- Improved search and filtering.
+- Case-wise evidence reports.
+- Stronger authentication and evidence-chain-of-custody support.
 
-| Result | Meaning |
-|---|---|
-| `duplicate` | identical bytes (any filename) |
-| `tampered` | content partly matches stored evidence (some removed/replaced) — the case gets a tamper alert and cannot be sealed until an Inspector/DSP/SP resolves it |
-| `name_conflict` | same name (ignoring extension), different content → "please change the file name" |
-| `stored` | new evidence |
+## 🎓 Project Information
 
-## Limits (be upfront in the review)
+**Project Name:** MerkleVault — Smart Digital Evidence Management System  
+**Domain:** Digital Forensics, Data Structures and Algorithms, and Data Integrity  
+**Repository:** [Smart Digital Evidence Vault](https://github.com/vadapallimouli/Smart_digital_evidence_vault)
 
-* Modified-copy detection needs ≥ 25 % shared content; images/videos that are re-saved or re-encoded change every byte and cannot be matched this way.
-* The vault lives in server memory for the session (refreshing the page starts a clean vault). A production system would persist to a database/encrypted storage.
+## 📜 License
+
+This project is intended for academic and educational purposes. Add an appropriate open-source license if you intend to distribute or reuse the code publicly.
