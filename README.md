@@ -1,134 +1,55 @@
-# 🔐 Smart Digital Evidence Management Using Merkle Tree and AI (MerkleVault)
+# MerkleVault — Smart Digital Evidence Management (Python DSA edition)
 
-**Team A-9 | Final Project Review**
+The screens, login (3 departments × 4 authorities), 13-step approval workflow,
+case reports and digital signature are exactly as before (`static/index.html`).
+**Every data-structure / algorithm operation now runs in Python** (`dsa.py`).
 
-## 👥 Team Members
+## Run
 
-| S. No. | Name | Register Number |
-|---|---|---|
-| 1 | H. Bala Sri Siva Sai Surya Tej | CB.AI.U4AID25017 |
-| 2 | V. Mouli Sri | CB.AI.U4AID25066 |
-| 3 | B. Sharmitha | CB.AI.U4AID25007 |
-| 4 | C. Jasmitha | CB.AI.U4AID25011 |
-
-**Department:** B.Tech Artificial Intelligence & Data Science  
-**Institution:** Amrita Vishwa Vidyapeetham, Coimbatore  
-
----
-
-## 📌 About the Project
-
-**MerkleVault** is a web-based digital evidence management system designed to organize digital evidence and support evidence integrity verification.
-
-The system combines cryptographic hashing, Merkle Tree verification, content-based tamper detection, duplicate detection, intelligent searching, and investigation management workflows.
-
-## 🎯 Objectives
-
-- Securely manage digital evidence.
-- Generate SHA-256 fingerprints for uploaded files.
-- Verify evidence integrity using Merkle Trees.
-- Detect duplicate evidence and potential content modifications.
-- Identify filename conflicts.
-- Organize evidence through automatic classification and Trie-based searching.
-- Maintain evidence records and chain-of-custody information.
-- Support departmental dashboards, investigation reports, and approval workflows.
-
-## ✨ Key Features
-
-### 🔐 1. Evidence Integrity Verification
-Uses SHA-256 fingerprints and Merkle Tree concepts to support the verification of evidence integrity.
-
-### 🔍 2. Content-Based Tamper Detection
-Compares evidence content to identify potential modifications according to the implemented comparison criteria.
-
-### 🧬 3. Duplicate Evidence Detection
-Identifies identical file content, even when files have different names.
-
-### ⚠️ 4. Filename Conflict Detection
-Detects when different content is uploaded using an existing filename.
-
-### 🗂️ 5. Intelligent Evidence Organization
-Supports Trie-based prefix searching and automatic classification of supported files.
-
-### 🏛️ 6. Department and Authority Management
-Organizes investigation activities through department-specific dashboards and hierarchical access workflows.
-
-### 📑 7. Report Management
-Supports investigation reports, review and approval workflows, chain-of-custody records, and digital signing features.
-
-## 🛠️ Technologies and Concepts
-
-- **HTML5** — Web page structure.
-- **CSS3** — User interface styling.
-- **JavaScript** — Client-side functionality.
-- **SHA-256** — Cryptographic file fingerprinting.
-- **Merkle Tree** — Hierarchical hash-based integrity verification.
-- **Hash Map** — Efficient fingerprint lookup.
-- **Trie** — Prefix-based searching.
-- **Content Comparison** — Identification of content similarities and changes.
-
-*The technologies and features listed above should match the actual implementation in the repository.*
-
-## 📂 Project Structure
-
-```text
-Smart-Digital-Evidence-Management/
-│
-├── Smart_digital_evidence_vault.html
-└── README.md
+```bash
+pip install -r requirements.txt
+python app.py            # then open  http://localhost:5000
 ```
 
-If you rename the HTML file to `index.html` for GitHub Pages, update the filename accordingly.
+Do **not** open `static/index.html` by double-clicking — it needs the Python server.
+To see the algorithms in the terminal only (no browser):  `python demo.py`
 
-## 🚀 How to Run the Project
+## Files
 
-1. Clone or download this repository.
-2. Open the project folder.
-3. Open `Smart_digital_evidence_vault.html` in a modern web browser.
-4. Explore the available evidence management and verification features.
+| File | What it is |
+|---|---|
+| `dsa.py` | All DSA code: SHA-256, Hash Map, Trie, Merkle Tree, content chunking, similarity, classification, `EvidenceVault` |
+| `app.py` | Small Flask server that exposes `dsa.py` to the HTML page |
+| `static/index.html` | The user interface (login, dashboards, workflow, reports) |
+| `demo.py` | Terminal walk-through of every algorithm |
 
-No separate development server is required to open a standalone HTML file.
+## How to explain each DSA to your faculty
 
-## 🌐 Deployment Using GitHub Pages
+| Concept | Where in `dsa.py` | Idea | Complexity |
+|---|---|---|---|
+| **SHA-256** | `sha256_bytes()` | File → 64-hex fingerprint; any change gives a different one | O(file size) |
+| **Hash Map** | `EvidenceVault.hash_index`, `name_index`, `case_index` (Python `dict`) | Fingerprint → evidence id, so an exact duplicate is found instantly | O(1) |
+| **Trie** | `class Trie`, `TrieNode` | Evidence names / ids / keywords stored letter by letter; prefix search walks one node per letter | O(length of query) |
+| **Merkle Tree** | `build_merkle_tree()` | Leaves = file hashes, parent = SHA-256(left+right); the root proves the whole case is unchanged | O(n) build |
+| **Content-defined chunking** | `chunk_bytes()` | A rolling *gear hash* decides chunk boundaries from the content, so deleting bytes in the middle does not shift later chunks | O(file size) |
+| **Set/Map similarity** | `similarity()` | Share of old chunks still present in the new file → "80 % intact" | O(chunks) |
+| **Classification** | `classify()` | MIME type / extension → Image, Video, Audio, PDF, Document | O(1) |
 
-1. Upload the project files to your GitHub repository.
-2. Rename the main HTML file to `index.html` if needed.
-3. Open your repository's **Settings**.
-4. Select **Pages**.
-5. Configure deployment from the `main` branch and the root folder.
-6. Save the settings and wait for deployment.
-7. Open the website URL displayed in the Pages section.
+## Upload pipeline (`EvidenceVault.ingest`)
 
-## 🔒 Security Considerations
+```
+SHA-256  →  exact duplicate?  →  edited copy of stored evidence?  →  filename already used?  →  classify + store + Trie index
+            (hash map)           (chunk similarity ≥ 25 %)            (name without extension)
+```
 
-This project is developed for academic and demonstration purposes.
+| Result | Meaning |
+|---|---|
+| `duplicate` | identical bytes (any filename) |
+| `tampered` | content partly matches stored evidence (some removed/replaced) — the case gets a tamper alert and cannot be sealed until an Inspector/DSP/SP resolves it |
+| `name_conflict` | same name (ignoring extension), different content → "please change the file name" |
+| `stored` | new evidence |
 
-- Client-side functionality alone does not guarantee secure evidence storage.
-- Data held only in browser memory may be lost when the page is refreshed or closed.
-- SHA-256 fingerprints help identify exact content changes, while partial-content similarity requires separate comparison logic.
-- Production deployment would require secure backend storage, authentication, access controls, audit logging, and verified chain-of-custody mechanisms.
+## Limits (be upfront in the review)
 
-**Do not upload real or confidential digital evidence to a public repository.**
-
-## 🔮 Future Enhancements
-
-- Advanced content-similarity analysis.
-- Testing with larger evidence datasets.
-- Support for additional digital evidence formats.
-- Improved evidence retrieval efficiency.
-- Stronger audit logging and investigation analytics.
-- Enhanced secure storage and access management.
-
-## 🎓 Academic Project
-
-This project was developed as part of the **B.Tech Artificial Intelligence & Data Science** program at **Amrita Vishwa Vidyapeetham, Coimbatore**.
-
-**Project Title:** Smart Digital Evidence Management Using Merkle Tree and AI  
-**Project Name:** MerkleVault  
-**Team:** A-9
-
----
-
-## 📄 License
-
-No license has been specified. Add an appropriate open-source license if you intend to allow others to reuse or modify this project.
+* Modified-copy detection needs ≥ 25 % shared content; images/videos that are re-saved or re-encoded change every byte and cannot be matched this way.
+* The vault lives in server memory for the session (refreshing the page starts a clean vault). A production system would persist to a database/encrypted storage.

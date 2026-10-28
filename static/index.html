@@ -1,0 +1,1809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MerkleVault — Smart Digital Evidence Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F3EC;
+    --paper-alt:#FFFFFF;
+    --ink:#1C2541;
+    --ink-soft:#5B6478;
+    --ink-faint:#8B93A6;
+    --line:#DAD3C1;
+    --line-strong:#C7BEA6;
+    --brass:#9C6B27;
+    --brass-soft:#EADFC5;
+    --verified:#2F6B4F;
+    --verified-bg:#E7F0EA;
+    --tampered:#AE3B34;
+    --tampered-bg:#F6E7E4;
+    --duplicate:#B5761F;
+    --duplicate-bg:#FBEEDA;
+    --inv:#2B4C7E;
+    --inv-bg:#E7EDF6;
+    --cyb:#0E7C86;
+    --cyb-bg:#DFF1F1;
+    --forx:#5A3E85;
+    --forx-bg:#EEE7F6;
+    --radius:10px;
+    --shadow: 0 1px 2px rgba(28,37,65,0.06), 0 8px 24px -12px rgba(28,37,65,0.18);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image: radial-gradient(circle at 1px 1px, rgba(28,37,65,0.035) 1px, transparent 0);
+    background-size: 22px 22px;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.serif{font-family:'Source Serif 4', serif;}
+  .mono{font-family:'JetBrains Mono', monospace;}
+  a{color:inherit;}
+  ::selection{background:var(--brass-soft);}
+  button{font-family:'Inter',sans-serif;}
+  textarea{font-family:'Inter',sans-serif;}
+
+  /* ============ LOGIN GATE ============ */
+  #authGate{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .auth-card{
+    width:100%; max-width:620px; background:var(--paper-alt); border:1px solid var(--line); border-radius:16px;
+    box-shadow:var(--shadow); padding:34px 32px 30px; position:relative;
+  }
+  .auth-brand{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:6px;}
+  .auth-brand .brand-mark{width:36px;height:36px;}
+  .auth-card h1{text-align:center; font-size:22px; margin:6px 0 4px; font-weight:600;}
+  .auth-card .sub{text-align:center; font-size:13px; color:var(--ink-faint); margin-bottom:26px;}
+  .dept-cards{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:6px;}
+  @media (max-width:560px){.dept-cards{grid-template-columns:1fr;}}
+  .dept-card{
+    border:1.5px solid var(--line-strong); border-radius:12px; padding:16px 10px; text-align:center; cursor:pointer;
+    background:var(--paper); transition:.15s;
+  }
+  .dept-card:hover{border-color:var(--ink);}
+  .dept-card.selected{border-color:var(--ink); background:var(--paper-alt); box-shadow:var(--shadow);}
+  .dept-card .ic{font-size:24px; margin-bottom:8px;}
+  .dept-card .t{font-weight:700; font-size:12.5px; line-height:1.3;}
+  .dept-card .d{font-size:10.5px; color:var(--ink-faint); margin-top:4px; line-height:1.4;}
+  .login-form{margin-top:22px; display:none;}
+  .login-form.show{display:block; animation:fadein .25s ease;}
+  .login-form .field{margin-bottom:14px;}
+  .login-form label{display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--ink-soft); margin-bottom:6px;}
+  .login-form input, .login-form select{
+    width:100%; padding:11px 13px; border:1px solid var(--line-strong); border-radius:8px;
+    font-family:'JetBrains Mono',monospace; font-size:14px; background:var(--paper); color:var(--ink);
+  }
+  .login-form select{font-family:'Inter',sans-serif; cursor:pointer; font-weight:600; color:var(--ink); background:var(--paper-alt);}
+  .login-form select option{color:var(--ink); background:var(--paper-alt);}
+  .login-form input:focus, .login-form select:focus{outline:2px solid var(--ink); outline-offset:1px;}
+  .pw-field{position:relative;}
+  .pw-field input{padding-right:44px;}
+  .pw-toggle{
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    background:transparent; border:none; cursor:pointer; font-size:16px; padding:6px 8px;
+    color:var(--ink-faint); line-height:1;
+  }
+  .pw-toggle:hover{color:var(--ink);}
+  .auth-err{
+    background:var(--tampered-bg); color:var(--tampered); border:1px solid #E4B7B2; border-radius:8px;
+    padding:9px 12px; font-size:12.5px; margin-bottom:14px; display:none;
+  }
+  .auth-err.show{display:block;}
+  .login-actions{display:flex; gap:10px; margin-top:4px;}
+  .login-actions .btn{flex:1;}
+
+  /* ============ TOP BAR ============ */
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    background:rgba(246,243,236,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+    padding:14px 28px;
+    display:flex; align-items:center; gap:24px;
+    flex-wrap:wrap;
+  }
+  .brand{display:flex; align-items:center; gap:10px; margin-right:auto;}
+  .brand-mark{
+    width:34px;height:34px;border-radius:50%;
+    border:2px solid var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Source Serif 4',serif; font-weight:700; font-size:15px;
+    background:var(--paper-alt); flex-shrink:0;
+  }
+  .brand-text{display:flex; flex-direction:column; line-height:1.1;}
+  .brand-text b{font-family:'Source Serif 4',serif; font-size:18px; letter-spacing:0.2px;}
+  .brand-text span{font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--ink-faint);}
+
+  nav.tabs{display:flex; gap:4px; background:var(--paper-alt); border:1px solid var(--line); border-radius:999px; padding:4px;}
+  nav.tabs button{
+    border:none; background:transparent; padding:8px 15px; border-radius:999px;
+    font-weight:600; font-size:12.5px; color:var(--ink-soft);
+    cursor:pointer; transition:all .15s ease; white-space:nowrap;
+  }
+  nav.tabs button.active{background:var(--ink); color:var(--paper);}
+  nav.tabs button:hover:not(.active){color:var(--ink);}
+
+  .session-pill{display:flex; align-items:center; gap:10px;}
+  .who{
+    display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; padding:7px 13px;
+    border-radius:999px; letter-spacing:0.2px;
+  }
+  .who.INV{background:var(--inv-bg); color:var(--inv);}
+  .who.CYB{background:var(--cyb-bg); color:var(--cyb);}
+  .who.FOR{background:var(--forx-bg); color:var(--forx);}
+  .logout-btn{
+    border:1px solid var(--line-strong); background:var(--paper-alt); color:var(--ink-soft); font-size:12px;
+    font-weight:600; padding:7px 13px; border-radius:999px; cursor:pointer;
+  }
+  .logout-btn:hover{border-color:var(--ink); color:var(--ink);}
+
+  .wrap{max-width:1180px; margin:0 auto; padding:36px 28px 90px;}
+  .view{display:none;}
+  .view.active{display:block; animation:fadein .35s ease;}
+  @keyframes fadein{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  /* ============ HERO ============ */
+  .hero{display:grid; grid-template-columns:1.3fr 1fr; gap:34px; margin-bottom:38px; align-items:start;}
+  @media (max-width:880px){.hero{grid-template-columns:1fr;}}
+  .eyebrow{font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--brass); font-weight:700; margin-bottom:10px;}
+  .hero h1{font-size:32px; line-height:1.15; margin:0 0 14px; font-weight:600;}
+  .hero p{color:var(--ink-soft); font-size:15px; line-height:1.65; max-width:52ch;}
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .stat-card{background:var(--paper-alt); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow);}
+  .stat-card .num{font-family:'Source Serif 4',serif; font-size:26px; font-weight:700;}
+  .stat-card .lbl{font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:1px; margin-top:3px;}
+
+  .dept-badge{display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; padding:4px 10px; border-radius:999px;}
+  .dept-badge.INV{background:var(--inv-bg); color:var(--inv);}
+  .dept-badge.CYB{background:var(--cyb-bg); color:var(--cyb);}
+  .dept-badge.FOR{background:var(--forx-bg); color:var(--forx);}
+
+  section.block{margin-bottom:40px;}
+  .block-head{display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:16px; flex-wrap:wrap;}
+  .block-head h2{font-size:21px; font-weight:600; margin:0;}
+  .block-head .sub{font-size:12.5px; color:var(--ink-faint);}
+
+  .panel{background:var(--paper-alt); border:1px solid var(--line); border-radius:var(--radius); padding:22px; box-shadow:var(--shadow);}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--ink-soft); margin-bottom:6px;}
+  .field input[type=text], .field select, .field textarea{
+    width:100%; padding:10px 12px; border:1px solid var(--line-strong); border-radius:7px;
+    font-family:'Inter',sans-serif; font-size:14px; background:var(--paper);
+  }
+  .field textarea{resize:vertical; min-height:80px; line-height:1.5;}
+  .field input[type=text]:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--ink); outline-offset:1px;}
+  select{cursor:pointer;}
+
+  /* ============ CASES ============ */
+  .case-form{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;}
+  .case-form .field{flex:1; min-width:220px; margin-bottom:0;}
+  .case-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; margin-top:20px;}
+  .case-card{background:var(--paper-alt); border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); position:relative;}
+  .case-card .cid{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--brass); font-weight:700; letter-spacing:0.4px;}
+  .case-card .cname{font-family:'Source Serif 4',serif; font-size:17px; font-weight:600; margin:4px 0 8px;}
+  .case-card .meta{display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink-faint); margin-bottom:10px;}
+  .case-card .stagepill{font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:999px; display:inline-block; margin-bottom:10px;}
+  .case-card .stagepill.active{background:var(--brass-soft); color:var(--brass);}
+  .case-card .stagepill.mine{background:var(--verified-bg); color:var(--verified);}
+  .case-card .stagepill.complete{background:var(--verified-bg); color:var(--verified);}
+  .case-card .actions{display:flex; gap:8px; margin-top:12px;}
+  .case-card .actions button{flex:1;}
+
+  .dropzone{border:2px dashed var(--line-strong); border-radius:12px; padding:30px 18px; text-align:center; cursor:pointer; transition:.15s; background:var(--paper);}
+  .dropzone.drag{border-color:var(--brass); background:var(--brass-soft);}
+  .dropzone.disabled{cursor:not-allowed; opacity:.55;}
+  .dropzone .ic{font-size:24px; margin-bottom:8px;}
+  .dropzone .t1{font-weight:600; font-size:14px;}
+  .dropzone .t2{font-size:11.5px; color:var(--ink-faint); margin-top:4px;}
+  .filetypes{display:flex; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap;}
+  .filetypes span{font-size:10.5px; text-transform:uppercase; letter-spacing:0.5px; padding:4px 9px; border-radius:999px; border:1px solid var(--line-strong); color:var(--ink-soft); background:var(--paper-alt);}
+  .queue{margin-top:14px; display:flex; flex-direction:column; gap:8px;}
+  .queue-row{display:flex; align-items:center; gap:10px; font-size:12.5px; padding:8px 10px; background:var(--paper); border:1px solid var(--line); border-radius:8px;}
+  .queue-row .name{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+  .btn{border:none; cursor:pointer; font-weight:600; font-size:13px; padding:10px 18px; border-radius:7px; transition:.15s;}
+  .btn-primary{background:var(--ink); color:var(--paper);}
+  .btn-primary:hover{background:#2c3a63;}
+  .btn-ghost{background:transparent; border:1px solid var(--line-strong); color:var(--ink);}
+  .btn-ghost:hover{border-color:var(--ink);}
+  .btn-danger{background:transparent; border:1px solid #E4B7B2; color:var(--tampered);}
+  .btn-danger:hover{background:var(--tampered-bg);}
+  .btn-sm{padding:6px 12px; font-size:12px;}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+
+  .toast{display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border-radius:8px; font-size:13px; margin-bottom:10px; border:1px solid; line-height:1.5;}
+  .toast.warn{background:var(--duplicate-bg); border-color:#E6C68C; color:#7A4E10;}
+  .toast.ok{background:var(--verified-bg); border-color:#B9D6C4; color:var(--verified);}
+  .toast.err{background:var(--tampered-bg); border-color:#E4B7B2; color:var(--tampered);}
+  .toast.info{background:var(--inv-bg); border-color:#C4D2EA; color:var(--inv);}
+
+  .tag-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px;}
+  .etag{position:relative; background:var(--paper-alt); border:1.5px dashed var(--line-strong); border-radius:14px; padding:16px 16px 14px; box-shadow:var(--shadow);}
+  .etag::before{content:""; position:absolute; left:20px; top:-8px; width:14px; height:14px; border-radius:50%; background:var(--paper); border:1.5px dashed var(--line-strong);}
+  .etag .cat{display:inline-flex; align-items:center; gap:5px; font-size:10px; text-transform:uppercase; letter-spacing:0.8px; font-weight:700; color:var(--brass); margin-bottom:8px;}
+  .etag .fn{font-weight:600; font-size:14px; margin-bottom:2px; word-break:break-word;}
+  .etag .caseid{font-size:11px; color:var(--ink-faint); margin-bottom:8px;}
+  .etag .hash{font-size:10.5px; color:var(--ink-soft); word-break:break-all; line-height:1.5; background:var(--paper); padding:6px 8px; border-radius:6px; border:1px solid var(--line);}
+  .etag .foot{display:flex; justify-content:space-between; align-items:center; margin-top:10px;}
+  .badge{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; padding:4px 9px; border-radius:999px;}
+  .badge.verified{background:var(--verified-bg); color:var(--verified);}
+  .badge.tampered{background:var(--tampered-bg); color:var(--tampered);}
+  .badge.pending{background:#EEEBE1; color:var(--ink-soft);}
+  .etag .actions{display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;}
+  .etag .actions button{flex:1;}
+  .mini-stamp{position:absolute; top:8px; right:10px; transform:rotate(-7deg); font-size:8.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; border:2px solid; border-radius:50%; width:46px; height:46px; display:flex; align-items:center; justify-content:center; text-align:center; opacity:.9;}
+  .mini-stamp.verified{border-color:var(--verified); color:var(--verified);}
+  .mini-stamp.tampered{border-color:var(--tampered); color:var(--tampered);}
+
+  .searchbar{position:relative; margin-bottom:6px;}
+  .searchbar input{width:100%; padding:13px 16px 13px 42px; border:1px solid var(--line-strong); border-radius:10px; font-size:14.5px; background:var(--paper-alt); box-shadow:var(--shadow);}
+  .searchbar input:focus{outline:2px solid var(--ink); outline-offset:1px;}
+  .searchbar .sic{position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--ink-faint);}
+  .search-meta{font-size:11.5px; color:var(--ink-faint); margin:8px 2px 18px; font-family:'JetBrains Mono',monospace;}
+  .filter-row{display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; align-items:center;}
+  .chip{font-size:12px; padding:6px 13px; border-radius:999px; border:1px solid var(--line-strong); cursor:pointer; background:var(--paper-alt); color:var(--ink-soft); font-weight:600;}
+  .chip.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  .mini-select{padding:7px 12px; border:1px solid var(--line-strong); border-radius:999px; background:var(--paper-alt); font-size:12px; font-weight:600; color:var(--ink-soft); cursor:pointer;}
+  .empty{text-align:center; padding:60px 20px; color:var(--ink-faint); border:1.5px dashed var(--line); border-radius:12px;}
+  .empty .ic{font-size:30px; margin-bottom:10px;}
+
+  .root-card{background:var(--ink); color:var(--paper); border-radius:12px; padding:18px 22px; box-shadow:var(--shadow);}
+  .root-card .lbl{font-size:11px; text-transform:uppercase; letter-spacing:1.5px; opacity:.7; margin-bottom:6px;}
+  .root-card .val{font-family:'JetBrains Mono',monospace; font-size:12.5px; word-break:break-all; line-height:1.6;}
+  .status-pill{display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:999px; font-weight:700; font-size:12.5px; text-transform:uppercase; letter-spacing:0.6px; margin-top:10px;}
+  .status-pill.verified{background:var(--verified-bg); color:var(--verified);}
+  .status-pill.tampered{background:var(--tampered-bg); color:var(--tampered);}
+  .status-pill.unsealed{background:#3a4570; color:#c9cfe6;}
+  .tree-wrap{background:var(--paper-alt); border:1px solid var(--line); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); overflow-x:auto;}
+
+  table.log{width:100%; border-collapse:collapse; background:var(--paper-alt); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow);}
+  table.log th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--ink-faint); padding:12px 16px; border-bottom:1px solid var(--line); background:var(--paper);}
+  table.log td{padding:12px 16px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:top;}
+  table.log tr:last-child td{border-bottom:none;}
+  .act-tag{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:3px 9px; border-radius:999px; white-space:nowrap;}
+  .act-tag.Uploaded{background:#E4EAF6; color:#33477F;}
+  .act-tag.Viewed{background:#EEEBE1; color:var(--ink-soft);}
+  .act-tag.Verified{background:var(--verified-bg); color:var(--verified);}
+  .act-tag.Tampered{background:var(--tampered-bg); color:var(--tampered);}
+  .act-tag.Sealed{background:var(--brass-soft); color:var(--brass);}
+  .act-tag.Blocked{background:var(--duplicate-bg); color:var(--duplicate);}
+  .act-tag.Case-Created{background:var(--inv-bg); color:var(--inv);}
+  .act-tag.Login{background:var(--forx-bg); color:var(--forx);}
+  .act-tag.Submitted{background:var(--cyb-bg); color:var(--cyb);}
+  .act-tag.Approved{background:var(--verified-bg); color:var(--verified);}
+  .act-tag.Returned{background:var(--tampered-bg); color:var(--tampered);}
+  .act-tag.Signed{background:var(--brass-soft); color:var(--brass);}
+
+  .footer-note{margin-top:60px; padding-top:22px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-faint); line-height:1.7;}
+  .kicker-list{display:flex; flex-wrap:wrap; gap:8px 22px; margin-top:8px;}
+  .kicker-list span{white-space:nowrap;}
+
+  /* ============ CASE DETAIL ============ */
+  .back-link{display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; margin-bottom:18px;}
+  .back-link:hover{color:var(--ink);}
+  .case-head{display:flex; justify-content:space-between; align-items:flex-start; gap:20px; flex-wrap:wrap; margin-bottom:8px;}
+  .case-head h1{font-size:26px; margin:4px 0 6px;}
+  .case-head .cid{font-family:'JetBrains Mono',monospace; color:var(--brass); font-weight:700; font-size:12.5px;}
+  .case-desc{color:var(--ink-soft); font-size:14px; max-width:70ch; line-height:1.6; margin-bottom:18px;}
+
+  .stepper{display:flex; gap:0; overflow-x:auto; padding:16px 4px; background:var(--paper-alt); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:26px;}
+  .step-group{display:flex; flex-direction:column; align-items:center; padding:0 14px; border-right:1px dashed var(--line); flex-shrink:0;}
+  .step-group:last-child{border-right:none;}
+  .step-group .grp-label{font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin-bottom:8px; font-weight:700; white-space:nowrap;}
+  .step-row{display:flex; gap:8px;}
+  .step-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;border:2px solid var(--line-strong); background:var(--paper); color:var(--ink-faint); flex-shrink:0; position:relative;}
+  .step-dot.done{background:var(--verified); border-color:var(--verified); color:#fff;}
+  .step-dot.current{background:var(--brass); border-color:var(--brass); color:#fff; box-shadow:0 0 0 4px var(--brass-soft);}
+
+  .dept-panel{border:1px solid var(--line); border-radius:12px; padding:20px 22px; margin-bottom:18px; background:var(--paper-alt); box-shadow:var(--shadow);}
+  .dept-panel .dp-head{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;}
+  .dept-panel h3{margin:0; font-size:17px;}
+  .dp-status{font-size:10.5px; text-transform:uppercase; font-weight:700; letter-spacing:0.6px; padding:4px 10px; border-radius:999px;}
+  .dp-status.pending{background:#EEEBE1; color:var(--ink-soft);}
+  .dp-status.submitted{background:var(--brass-soft); color:var(--brass);}
+  .dp-status.approved{background:var(--verified-bg); color:var(--verified);}
+  .kv-grid{display:grid; grid-template-columns:1fr 1fr; gap:6px 20px; font-size:13px; margin-bottom:10px;}
+  @media (max-width:700px){.kv-grid{grid-template-columns:1fr;}}
+  .kv-grid .k{font-weight:700; color:var(--ink-soft); font-size:11px; text-transform:uppercase; letter-spacing:0.5px;}
+  .kv-grid .v{margin-bottom:8px;}
+  .readonly-block{background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:12px 14px; font-size:13px; line-height:1.6; margin-bottom:10px; white-space:pre-wrap;}
+  .readonly-block .lbl{font-size:10.5px; text-transform:uppercase; font-weight:700; letter-spacing:0.6px; color:var(--ink-faint); margin-bottom:4px;}
+
+  .review-item{padding:12px 14px; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; font-size:12.5px; background:var(--paper);}
+  .review-item.approved{border-left:4px solid var(--verified);}
+  .review-item.returned{border-left:4px solid var(--tampered);}
+  .review-item .rline{display:flex; justify-content:space-between; gap:10px; margin-bottom:4px; flex-wrap:wrap;}
+  .review-item .rwho{font-weight:700;}
+  .review-item .rwhen{color:var(--ink-faint); font-size:11px;}
+
+  .lock-note{font-size:12px; color:var(--ink-faint); font-style:italic; padding:10px 12px; background:var(--paper); border:1px dashed var(--line-strong); border-radius:8px;}
+
+  .report-page{background:#fff; border:1px solid var(--line); border-radius:10px; padding:32px; font-size:13px; line-height:1.65;}
+  .report-page h2{font-family:'Source Serif 4',serif; border-bottom:2px solid var(--ink); padding-bottom:8px; margin-top:0;}
+  .report-section{margin-bottom:24px;}
+  .report-section h4{font-size:12.5px; text-transform:uppercase; letter-spacing:1px; color:var(--brass); margin:0 0 10px; border-bottom:1px solid var(--line); padding-bottom:6px;}
+  .report-grid{display:grid; grid-template-columns:1fr 1fr; gap:6px 24px; font-size:13px;}
+  @media (max-width:700px){.report-grid{grid-template-columns:1fr;}}
+  .report-grid .k{color:var(--ink-faint); font-size:11px; text-transform:uppercase; letter-spacing:0.4px;}
+  .report-grid .v{margin-bottom:10px; font-weight:500;}
+  .ev-report-row{border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-bottom:8px; font-size:12.5px;}
+  .sig-block{margin-top:10px; border:2px solid var(--ink); border-radius:10px; padding:18px 20px; background:var(--paper);}
+  .sig-block .sig-title{font-weight:700; font-size:13px; margin-bottom:10px;}
+  .sig-hash{font-family:'JetBrains Mono',monospace; font-size:11px; word-break:break-all; background:#fff; border:1px solid var(--line); padding:8px 10px; border-radius:6px; color:var(--ink-soft);}
+  .final-stamp{display:inline-block; border:2.5px solid var(--verified); color:var(--verified); border-radius:8px; padding:6px 14px; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:12px; transform:rotate(-2deg);}
+
+  .dup-item{background:var(--duplicate-bg); border:1px solid #E6C68C; border-left:4px solid var(--duplicate); border-radius:8px; padding:10px 14px; margin-bottom:8px; font-size:12.5px; color:#7A4E10; line-height:1.55;}
+  .dup-item.tamper{background:var(--tampered-bg); border-color:#E4B7B2; border-left-color:var(--tampered); color:#7C2420;}
+  tr.row-tamper td{background:var(--tampered-bg);}
+  .act-tag.Resolved{background:var(--verified-bg); color:var(--verified);}
+  .alert-banner{background:var(--tampered-bg); border:1px solid #E4B7B2; border-left:4px solid var(--tampered); color:#7C2420; border-radius:8px; padding:12px 16px; font-size:13px; font-weight:600; margin-bottom:16px;}
+  .case-select-bar{display:flex; align-items:center; gap:10px; margin-bottom:22px; flex-wrap:wrap;}
+  .case-select-bar select{padding:10px 14px; border-radius:8px; border:1px solid var(--line-strong); background:var(--paper-alt); font-size:13.5px; font-weight:600; color:var(--ink); min-width:280px;}
+  .how-to{font-size:12.5px; color:var(--ink-soft); background:var(--inv-bg); border:1px solid #C4D2EA; border-radius:8px; padding:10px 14px; margin-bottom:12px; line-height:1.6;}
+  @media print{
+    body *{visibility:hidden;}
+    #reportPrintArea, #reportPrintArea *{visibility:visible;}
+    #reportPrintArea{position:absolute; left:0; top:0; width:100%; padding:0;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN GATE ================= -->
+<div id="authGate">
+  <div class="auth-card">
+    <div class="auth-brand"><div class="brand-mark">⚖</div></div>
+    <h1>MerkleVault Secure Access</h1>
+    <div class="sub">Select your department, then your authority and password to sign in</div>
+
+    <div class="dept-cards">
+      <div class="dept-card" id="deptCardINV" onclick="selectDeptCard('INV')">
+        <div class="ic">🏢</div>
+        <div class="t">Investigation Department</div>
+      </div>
+      <div class="dept-card" id="deptCardCYB" onclick="selectDeptCard('CYB')">
+        <div class="ic">🏢</div>
+        <div class="t">Cyber Crime Department</div>
+      </div>
+      <div class="dept-card" id="deptCardFOR" onclick="selectDeptCard('FOR')">
+        <div class="ic">🏢</div>
+        <div class="t">Digital Forensics Department</div>
+      </div>
+    </div>
+
+    <div class="auth-err" id="serverWarn">⚠ The Python server is not reachable. Start it with <b>python app.py</b> and open <b>http://localhost:5000</b> (do not open this file directly).</div>
+    <div class="auth-err" id="authErr">Incorrect authority or password. Please try again.</div>
+
+    <div class="login-form" id="loginForm">
+      <div class="field">
+        <label for="loginAuthority">Authority (Position)</label>
+        <select id="loginAuthority"></select>
+      </div>
+      <div class="field">
+        <label for="loginPass">Password</label>
+        <div class="pw-field">
+          <input type="password" id="loginPass" autocomplete="off" placeholder="Enter your password">
+          <button type="button" class="pw-toggle" id="pwToggleBtn" onclick="togglePasswordVisibility()" aria-label="Show password">👁</button>
+        </div>
+      </div>
+      <div class="login-actions">
+        <button class="btn btn-ghost" onclick="backToDepts()">Back</button>
+        <button class="btn btn-primary" onclick="attemptLogin()">Sign In</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div id="appRoot" style="display:none;">
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">⚖</div>
+    <div class="brand-text"><b>MerkleVault</b><span>Digital Evidence Management</span></div>
+  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-view="dashboard">Dashboard</button>
+    <button class="tab-btn" data-view="upload" id="uploadTabBtn" style="display:none;">Upload Evidence</button>
+    <button class="tab-btn" data-view="vault">Evidence Vault</button>
+    <button class="tab-btn" data-view="integrity">Merkle Integrity</button>
+    <button class="tab-btn" data-view="custody">Chain of Custody</button>
+  </nav>
+  <div class="session-pill">
+    <span class="who" id="whoPill">—</span>
+    <button class="logout-btn" onclick="logout()">Log Out</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ================= DASHBOARD VIEW ================= -->
+  <div class="view active" id="view-dashboard">
+    <div class="hero">
+      <div>
+        <div class="eyebrow" id="deptEyebrow">Group‑9 · Smart Digital Evidence Management System</div>
+        <h1>A tamper‑evident, multi‑department case workflow.</h1>
+        <p>Every case moves through Investigation, Cyber Crime and Digital Forensics — each with its own hierarchical review — before a final, digitally signed case report is sealed.</p>
+        <div class="stat-grid" style="margin-top:22px;">
+          <div class="stat-card"><div class="num" id="statCases">0</div><div class="lbl">Total Cases</div></div>
+          <div class="stat-card"><div class="num" id="statMine">0</div><div class="lbl">Pending At My Desk</div></div>
+          <div class="stat-card"><div class="num" id="statComplete">0</div><div class="lbl">Completed &amp; Sealed</div></div>
+          <div class="stat-card"><div class="num" id="statTotal">0</div><div class="lbl">Evidence Items</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="block-head" style="margin-bottom:12px;"><h2 style="font-size:15px;">Workflow at a Glance</h2></div>
+        <div style="font-size:12.5px; color:var(--ink-soft); line-height:2;">
+          <div><span class="dept-badge INV">INV</span> SI → Inspector → DSP → SP</div>
+          <div><span class="dept-badge CYB">CYB</span> SI → Inspector → DSP → SP</div>
+          <div><span class="dept-badge FOR">FOR</span> Officer → Sr. Scientific Officer → Asst. Director → Director (sign)</div>
+        </div>
+      </div>
+    </div>
+
+    <section class="block" id="createCaseSection" style="display:none;">
+      <div class="block-head">
+        <h2>Open a New Case</h2>
+        <div class="sub">Only the Investigating Officer (SI) can register a new case</div>
+      </div>
+      <div class="panel">
+        <div class="field">
+          <label for="caseTitleInput">Case Title</label>
+          <input type="text" id="caseTitleInput" placeholder="e.g. Online Banking Fraud — Sector 12">
+        </div>
+        <div class="field">
+          <label for="caseDescInput">Case Description</label>
+          <textarea id="caseDescInput" placeholder="Brief description of the incident, complainant, and jurisdiction"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="createCase()">+ Register Case</button>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h2>Cases</h2>
+        <div class="sub">Click a case to open its workspace</div>
+      </div>
+      <div class="case-grid" id="caseGrid"></div>
+    </section>
+  </div>
+
+  <!-- ================= CASE DETAIL VIEW ================= -->
+  <div class="view" id="view-case">
+    <div class="back-link" onclick="goToDashboard()">← Back to Dashboard</div>
+    <div id="caseDetailRoot"></div>
+  </div>
+
+  <!-- ================= UPLOAD VIEW ================= -->
+  <div class="view" id="view-upload">
+    <section class="block">
+      <div class="block-head">
+        <h2>Upload Evidence</h2>
+        <div class="sub">Select the case, then drop files — each is SHA-256 fingerprinted and checked for duplicates</div>
+      </div>
+      <div class="panel">
+        <div class="field">
+          <label for="caseSelectUpload">Select Case</label>
+          <select id="caseSelectUpload" onchange="renderUploadView()"></select>
+        </div>
+        <div class="field"><label>Keywords (comma separated, optional)</label><input type="text" id="uploadKeywords" placeholder="e.g. laptop, cctv, witness statement"></div>
+        <div class="dropzone disabled" id="dropzoneUp">
+          <div class="ic">⬆</div>
+          <div class="t1" id="dzTitle">Select a case above to enable upload</div>
+          <div class="t2">The vault remembers file <b>content</b>: identical copies are blocked as duplicates, edited copies (content removed or replaced) are rejected as tampered, and a name already in use must be changed</div>
+          <div class="filetypes"><span>🖼 Image</span><span>🎞 Video</span><span>🎧 Audio</span><span>📄 PDF</span><span>📃 Document</span></div>
+        </div>
+        <input type="file" id="fileInputUp" multiple style="display:none">
+        <div id="uploadToasts" style="margin-top:12px;"></div>
+      </div>
+    </section>
+    <section class="block">
+      <div class="block-head"><h2>Duplicate &amp; Tamper Detection Log</h2><div class="sub">Uploads blocked this session</div></div>
+      <div id="dupLog"></div>
+    </section>
+    <section class="block">
+      <div class="block-head"><h2>Evidence in Selected Case</h2></div>
+      <div class="tag-grid" id="uploadCaseGrid"></div>
+    </section>
+  </div>
+
+  <!-- ================= INTEGRITY VIEW ================= -->
+  <div class="view" id="view-integrity">
+    <section class="block">
+      <div class="block-head">
+        <h2>Merkle Tree Integrity Verification</h2>
+        <div class="sub">Every case has its own Merkle tree built from its evidence fingerprints</div>
+      </div>
+      <div class="case-select-bar">
+        <label for="caseSelectIntegrity" style="font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.8px; color:var(--ink-soft);">Select Case</label>
+        <select id="caseSelectIntegrity" class="case-select" data-placeholder="— Select a case —" onchange="renderIntegrity()"></select>
+        <button class="btn btn-ghost btn-sm" id="sealBtn" onclick="sealCaseVault()" style="display:none;">🔒 Seal Case Vault</button>
+        <button class="btn btn-primary btn-sm" onclick="verifyAllIntegrity()">Verify All Evidence</button>
+      </div>
+      <div id="integrityAlerts" style="margin-bottom:16px;"></div>
+      <div class="root-card" style="margin-bottom:18px;">
+        <div class="lbl">Merkle Root</div>
+        <div class="val" id="merkleRootVal">— select a case to view its tree —</div>
+        <div id="statusPillWrap"></div>
+      </div>
+      <div class="tree-wrap"><svg id="merkleSvg" width="100%" height="360"></svg></div>
+    </section>
+  </div>
+
+  <!-- ================= VAULT VIEW ================= -->
+  <div class="view" id="view-vault">
+    <section class="block">
+      <div class="block-head">
+        <h2>Trie‑Based Fast Evidence Search</h2>
+        <div class="sub">Search by file name, case ID, evidence ID or keyword — O(length of query)</div>
+      </div>
+      <div class="searchbar">
+        <span class="sic">🔍</span>
+        <input type="text" id="searchInput" placeholder="Start typing a filename, case ID, evidence ID or keyword…">
+      </div>
+      <div class="search-meta" id="searchMeta">trie ready · 0 nodes indexed</div>
+      <div class="filter-row" id="filterRow">
+        <div class="chip active" data-filter="All">All</div>
+        <div class="chip" data-filter="Image">Image</div>
+        <div class="chip" data-filter="Video">Video</div>
+        <div class="chip" data-filter="Audio">Audio</div>
+        <div class="chip" data-filter="PDF">PDF</div>
+        <div class="chip" data-filter="Document">Document</div>
+        <select class="mini-select case-select" id="caseFilterVault" onchange="renderVault()" style="margin-left:auto;">
+          <option value="">All Cases</option>
+        </select>
+      </div>
+      <div class="tag-grid" id="vaultGrid"></div>
+    </section>
+  </div>
+
+  <!-- ================= CUSTODY VIEW ================= -->
+  <div class="view" id="view-custody">
+    <section class="block">
+      <div class="block-head">
+        <h2>Chain of Custody</h2>
+        <div class="sub">Every action, timestamped and attributed to a department &amp; authority</div>
+      </div>
+      <div class="filter-row">
+        <select class="mini-select case-select" id="caseFilterCustody" onchange="renderCustody()">
+          <option value="">All Cases</option>
+        </select>
+      </div>
+      <div id="custodyBanner"></div>
+      <table class="log">
+        <thead><tr><th style="width:110px;">Action</th><th style="width:150px;">Time</th><th style="width:190px;">User</th><th style="width:110px;">Case</th><th>Detail</th></tr></thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <div class="footer-note">
+    <b>Smart Digital Evidence Management using Merkle Tree and AI</b> — prototype for Group‑9's project review.
+    <div class="kicker-list">
+      <span>✓ 3-department hierarchical workflow</span>
+      <span>✓ SHA‑256 fingerprinting</span>
+      <span>✓ Per‑case Merkle trees</span>
+      <span>✓ Trie‑based search</span>
+      <span>✓ AI duplicate detection</span>
+      <span>✓ Multi-level approval &amp; digital signature</span>
+    </div>
+    <p style="margin-top:14px;">The data-structure engine is written in Python (<span class="mono">dsa.py</span>): SHA‑256, hash maps, Trie, Merkle tree and content-chunk comparison run on a local Flask server (<span class="mono">app.py</span>). Evidence is held in server memory for this session. In a production deployment, evidence bytes, credentials, and the custody log would be persisted to encrypted storage.</p>
+  </div>
+</div>
+</div>
+
+<script>
+/* ============================================================
+   DEPARTMENTS, AUTHORITIES & WORKFLOW PIPELINE
+============================================================ */
+const DEPARTMENTS = {
+  INV: {
+    name: 'Investigation Department', short:'Investigation', icon:'🏢',
+    positions: [
+      { code:'SI',   label:'Investigating Officer (SI)', password:'INV@SI'   },
+      { code:'INSP', label:'Inspector',                   password:'INV@INSP' },
+      { code:'DSP',  label:'DSP',                          password:'INV@ACP' },
+      { code:'SP',   label:'SP',                           password:'INV@SP'  }
+    ]
+  },
+  CYB: {
+    name: 'Cyber Crime Department', short:'Cyber Crime', icon:'🏢',
+    positions: [
+      { code:'SI',   label:'Cyber Crime Investigating Officer (SI)', password:'CYB@SI'   },
+      { code:'INSP', label:'Cyber Crime Inspector',                   password:'CYB@INSP' },
+      { code:'DSP',  label:'DSP Cyber Crime',                          password:'CYB@ACP' },
+      { code:'SP',   label:'SP / Cyber Crime',                         password:'CYB@SP'  }
+    ]
+  },
+  FOR: {
+    name: 'Digital Forensics Department', short:'Digital Forensics', icon:'🏢',
+    positions: [
+      { code:'SO',  label:'Scientific / Forensic Officer', password:'FOR@SO'  },
+      { code:'SSO', label:'Senior Scientific Officer',      password:'FOR@SSO' },
+      { code:'AD',  label:'Assistant Director',             password:'FOR@AD'  },
+      { code:'DD',  label:'Deputy Director / Director',     password:'FOR@DD'  }
+    ]
+  }
+};
+
+// 13-step hierarchical pipeline, exactly matching the required flow diagram
+const PIPELINE = [
+  { dept:'INV', code:'SI',   kind:'entry',   title:'Investigating Officer — Case, Evidence &amp; Investigation Info' },
+  { dept:'INV', code:'INSP', kind:'review',  title:'Inspector Review' },
+  { dept:'INV', code:'DSP',  kind:'review',  title:'DSP Review' },
+  { dept:'INV', code:'SP',   kind:'forward', title:'SP Approval — Case Sent Forward to Cyber Crime' },
+  { dept:'CYB', code:'SI',   kind:'entry',   title:'Cyber Crime Investigator — Analysis &amp; Findings' },
+  { dept:'CYB', code:'INSP', kind:'review',  title:'Cyber Crime Inspector Review' },
+  { dept:'CYB', code:'DSP',  kind:'review',  title:'DSP / ACP Review' },
+  { dept:'CYB', code:'SP',   kind:'forward', title:'SP Cyber Approval — Forwarded to Digital Forensics' },
+  { dept:'FOR', code:'SO',   kind:'entry',   title:'Forensic Officer — Hash, Merkle Verification &amp; Findings' },
+  { dept:'FOR', code:'SSO',  kind:'review',  title:'Senior Scientific Officer Review' },
+  { dept:'FOR', code:'AD',   kind:'review',  title:'Assistant Director Review' },
+  { dept:'FOR', code:'DD',   kind:'finalApprove', title:'Final Forensic Approval — Compile Complete Case Report' },
+  { dept:'FOR', code:'DD',   kind:'sign',    title:'Final Authority Review, Authentication &amp; Digital Signature' }
+];
+
+function posLabel(dept, code){
+  const p = DEPARTMENTS[dept].positions.find(p=>p.code===code);
+  return p ? p.label : code;
+}
+
+let pendingDept = null; // 'INV' | 'CYB' | 'FOR'
+let session = null;     // {dept, code, label}
+
+function selectDeptCard(key){
+  pendingDept = key;
+  ['INV','CYB','FOR'].forEach(k=>document.getElementById('deptCard'+k).classList.toggle('selected', k===key));
+  const sel = document.getElementById('loginAuthority');
+  sel.innerHTML = DEPARTMENTS[key].positions.map(p=>`<option value="${p.code}">${escapeHtml(p.label)}</option>`).join('');
+  document.getElementById('loginForm').classList.add('show');
+  document.getElementById('authErr').classList.remove('show');
+  const pass = document.getElementById('loginPass');
+  pass.value=''; pass.type='password';
+  document.getElementById('pwToggleBtn').textContent = '👁';
+}
+function togglePasswordVisibility(){
+  const pass = document.getElementById('loginPass');
+  const btn = document.getElementById('pwToggleBtn');
+  const showing = pass.type === 'text';
+  pass.type = showing ? 'password' : 'text';
+  btn.textContent = showing ? '👁' : '🙈';
+  btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+}
+function backToDepts(){
+  pendingDept = null;
+  document.getElementById('loginForm').classList.remove('show');
+  document.getElementById('authErr').classList.remove('show');
+  ['INV','CYB','FOR'].forEach(k=>document.getElementById('deptCard'+k).classList.remove('selected'));
+}
+function attemptLogin(){
+  if(!pendingDept) return;
+  const code = document.getElementById('loginAuthority').value;
+  const pw = document.getElementById('loginPass').value;
+  const pos = DEPARTMENTS[pendingDept].positions.find(p=>p.code===code);
+  if(pos && pw === pos.password){
+    session = { dept: pendingDept, code: pos.code, label: pos.label };
+    document.getElementById('authGate').style.display='none';
+    document.getElementById('appRoot').style.display='block';
+    const pill = document.getElementById('whoPill');
+    pill.textContent = DEPARTMENTS[pendingDept].icon + ' ' + pos.label + ' · ' + DEPARTMENTS[pendingDept].short;
+    pill.className = 'who ' + pendingDept;
+    document.getElementById('deptEyebrow').textContent = DEPARTMENTS[pendingDept].name + ' · Group‑9 Smart Digital Evidence Management System';
+    document.getElementById('uploadTabBtn').style.display = (pendingDept==='INV') ? '' : 'none';
+    document.getElementById('createCaseSection').style.display = (pendingDept==='INV' && pos.code==='SI') ? 'block' : 'none';
+    logAction('Login', null, pos.label + ' (' + pendingDept + ') signed in');
+    goToDashboard();
+    renderAll();
+  } else {
+    document.getElementById('authErr').classList.add('show');
+  }
+}
+function logout(){
+  session = null;
+  document.getElementById('caseDetailRoot').innerHTML='';
+  document.getElementById('appRoot').style.display='none';
+  document.getElementById('authGate').style.display='flex';
+  backToDepts();
+}
+
+/* ============================================================
+   STATE
+============================================================ */
+const state = {
+  cases: [],             // Case objects
+  evidence: [],          // metadata mirrored from the Python vault (file bytes stay in Python)
+  trieNodes: 1,          // node count reported by the Python Trie
+  duplicates: [],        // blocked duplicate uploads
+  custody: [],           // {action, time, user, caseId, evId, evName}
+  nextEvNum: 1,
+  nextCaseNum: 1,
+  nextAlertNum: 1,
+};
+
+function newCaseObj(id, title, description){
+  return {
+    sealedRoot: null,
+    tamperAlerts: [],
+    id, title, description, createdAt: new Date(),
+    createdBy: { dept: session.dept, code: session.code, label: session.label },
+    stage: 0, status: 'active',
+    evidenceIds: [],
+    dept: {
+      INV: { notes:'', actions:'', reportText:'', submittedAt:null },
+      CYB: { analysis:'', investigation:'', findings:'', reportText:'', submittedAt:null },
+      FOR: { evidenceVerification:'', shaSummary:'', tamperAnalysis:'', findings:'', reportText:'', merkleRoot:null, merkleStatus:'', submittedAt:null }
+    },
+    reviews: [],
+    finalReport: { conclusion:'', remarks:'', preparedBy:null, reviewedBy:[], approvedBy:null, compiledAt:null, digitalSignature:null, status:'Draft' }
+  };
+}
+
+/* ============================================================
+   UTIL
+============================================================ */
+/* All DSA work (SHA-256, hash map, trie, Merkle tree, chunking) runs in Python: dsa.py via app.py */
+const API = {
+  async json(url, opts){ const r = await fetch(url, opts); if(!r.ok) throw new Error(url + ' -> ' + r.status); return r.json(); },
+  get(url){ return this.json(url); },
+  post(url, body){ return this.json(url, { method:'POST', headers: body ? {'Content-Type':'application/json'} : {}, body: body ? JSON.stringify(body) : undefined }); }
+};
+function toEv(e){ return { ...e, uploadedAt: new Date(e.uploadedAt) }; }
+async function syncEvidence(){
+  const d = await API.get('/api/evidence');
+  state.evidence = d.evidence.map(toEv);
+  state.trieNodes = d.trieNodes;
+  updateTrieMeta();
+}
+function shortHash(h){ return h ? (h.slice(0,10)+'…'+h.slice(-8)) : ''; }
+function fmtTime(d){ return d.toLocaleDateString(undefined,{month:'short',day:'2-digit',year:'numeric'}) + ' · ' + d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function caseById(id){ return state.cases.find(c=>c.id===id); }
+function caseLabel(id){ const c=caseById(id); return c ? `${c.id} — ${c.title}` : id; }
+function nl2br(s){ return escapeHtml(s||'').replace(/\n/g,'<br>'); }
+
+/* File classification (Image / Video / Audio / PDF / Document) is done in Python: dsa.classify() */
+const catIcon = {Image:'🖼', Video:'🎞', Audio:'🎧', PDF:'📄', Document:'📃'};
+
+/* Trie search and Merkle tree building are implemented in Python (dsa.py: Trie, build_merkle_tree) */
+function updateTrieMeta(){
+  const meta = document.getElementById('searchMeta');
+  if(meta) meta.textContent = `Python trie ready · ${state.trieNodes} nodes indexed · search runs in O(length of query)`;
+}
+function rebuildTrie(){ updateTrieMeta(); }
+
+/* ============================================================
+   CUSTODY LOG
+============================================================ */
+function logAction(action, caseId, detail, evId){
+  state.custody.unshift({
+    action, time: new Date(), user: session ? `${session.label} (${session.dept})` : 'System',
+    caseId: caseId || null, evId: evId || null, evName: detail || '—'
+  });
+  renderCustody();
+}
+
+/* ============================================================
+   CASES
+============================================================ */
+function createCase(){
+  if(!(session && session.dept==='INV' && session.code==='SI')){ alert('Only the Investigating Officer (SI) can register a new case.'); return; }
+  const titleInput = document.getElementById('caseTitleInput');
+  const descInput = document.getElementById('caseDescInput');
+  const title = titleInput.value.trim();
+  const description = descInput.value.trim();
+  if(!title){ titleInput.focus(); return; }
+  const id = 'CASE-' + String(state.nextCaseNum++).padStart(3,'0');
+  const c = newCaseObj(id, title, description);
+  state.cases.push(c);
+  titleInput.value=''; descInput.value='';
+  logAction('Case Created', id, title);
+  refreshCaseDropdowns();
+  renderCases();
+  renderStats();
+}
+
+function openAlerts(c){ return (c.tamperAlerts||[]).filter(a=>!a.resolved); }
+function canResolveAlerts(){ return !!session && session.dept==='INV' && ['INSP','DSP','SP'].includes(session.code); }
+function renderAlertsHtml(c){
+  if(!c.tamperAlerts.length) return '';
+  return c.tamperAlerts.map(a=>`
+    <div class="dup-item tamper">🚨 <b>${a.id}</b> — "${escapeHtml(a.file)}" was a modified version of <b>${a.refId}</b> ("${escapeHtml(a.refName)}") · ${a.intact}% of original intact · attempted by ${escapeHtml(a.by)} · ${fmtTime(a.time)}<br>
+    ${a.resolved
+      ? `<b>✓ Resolved</b> by ${escapeHtml(a.resolvedBy)} on ${fmtTime(a.resolvedAt)} — ${escapeHtml(a.remark)}`
+      : `<b>Unresolved</b> — this case cannot be sealed or forwarded until an Inspector / DSP / SP reviews the alert.` + (canResolveAlerts()
+        ? `<div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;"><input type="text" id="alertRemark_${a.id}" placeholder="Review remark (required)" style="flex:1; min-width:220px; padding:8px 10px; border:1px solid var(--line-strong); border-radius:6px; font-size:13px;"><button class="btn btn-ghost btn-sm" onclick="resolveAlert('${a.id}')">Mark Reviewed &amp; Resolve</button></div>` : '')}
+    </div>`).join('');
+}
+function resolveAlert(alertId){
+  if(!canResolveAlerts()){ alert('Only an Investigation Inspector, DSP or SP can resolve a tamper alert.'); return; }
+  const input = document.getElementById('alertRemark_'+alertId);
+  const remark = input ? input.value.trim() : '';
+  if(!remark){ alert('Please enter a review remark before resolving the alert.'); return; }
+  let found = null, owner = null;
+  for(const c of state.cases){ const a = c.tamperAlerts.find(x=>x.id===alertId); if(a){ found=a; owner=c; break; } }
+  if(!found) return;
+  found.resolved = true; found.resolvedBy = session.label; found.resolvedAt = new Date(); found.remark = remark;
+  logAction('Resolved', owner.id, `Tamper alert ${alertId} reviewed and resolved by ${session.label} — ${remark}`);
+  renderCases(); renderCustody();
+  if(document.getElementById('view-integrity').classList.contains('active')) renderIntegrity();
+  if(currentCaseId && document.getElementById('view-case').classList.contains('active')) renderCaseDetail(currentCaseId);
+}
+
+function evidenceCountForCase(caseId){ return state.evidence.filter(e=>e.caseId===caseId).length; }
+
+function stageOf(c){ return PIPELINE[Math.min(c.stage, PIPELINE.length-1)]; }
+function isCaseComplete(c){ return c.status === 'complete'; }
+function canActOn(c){
+  if(!session || isCaseComplete(c)) return false;
+  const st = stageOf(c);
+  return st.dept===session.dept && st.code===session.code;
+}
+function pendingWithLabel(c){
+  if(isCaseComplete(c)) return 'Completed & Sealed';
+  const st = stageOf(c);
+  return `Pending: ${posLabel(st.dept, st.code)} (${DEPARTMENTS[st.dept].short})`;
+}
+
+function renderCases(){
+  const grid = document.getElementById('caseGrid');
+  if(!state.cases.length){
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="ic">🗂</div>No cases registered yet.</div>`;
+    return;
+  }
+  grid.innerHTML = state.cases.slice().reverse().map(c=>{
+    const mine = canActOn(c);
+    const pillClass = isCaseComplete(c) ? 'complete' : (mine ? 'mine' : 'active');
+    return `
+    <div class="case-card">
+      <div class="cid">${c.id}</div>
+      <div class="cname">${escapeHtml(c.title)}</div>
+      <div class="meta">
+        <span>${evidenceCountForCase(c.id)} evidence item(s)</span>
+        <span>${fmtTime(c.createdAt)}</span>
+      </div>
+      <span class="stagepill ${pillClass}">${pendingWithLabel(c)}</span>
+      ${openAlerts(c).length ? `<div style="color:var(--tampered); font-size:11.5px; font-weight:700; margin-bottom:8px;">🚨 ${openAlerts(c).length} unresolved tamper alert(s)</div>` : ''}
+      <div class="actions">
+        <button class="btn btn-primary btn-sm" onclick="openCase('${c.id}')">${mine ? 'Act on Case →' : 'Open Case →'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function refreshCaseDropdowns(){
+  const selects = document.querySelectorAll('select.case-select');
+  selects.forEach(sel=>{
+    const keep = sel.value;
+    sel.innerHTML = `<option value="">${sel.dataset.placeholder||'All Cases'}</option>` + state.cases.map(c=>`<option value="${c.id}">${escapeHtml(c.id)} — ${escapeHtml(c.title)}</option>`).join('');
+    if([...sel.options].some(o=>o.value===keep)) sel.value = keep;
+  });
+}
+
+/* ============================================================
+   NAVIGATION
+============================================================ */
+function switchView(viewName){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===viewName));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+viewName).classList.add('active');
+  if(viewName==='vault') renderVault();
+  if(viewName==='custody') renderCustody();
+  refreshCaseDropdowns();
+  if(viewName==='upload') renderUploadView();
+  if(viewName==='integrity') renderIntegrity();
+  if(viewName==='dashboard') renderCases();
+}
+function goToDashboard(){ switchView('dashboard'); }
+let currentCaseId = null;
+function openCase(id){
+  currentCaseId = id;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-case').classList.add('active');
+  renderCaseDetail(id);
+  logAction('Viewed', id, 'Case workspace opened');
+}
+
+/* ============================================================
+   UPLOAD (Investigation — Evidence Collection)
+============================================================ */
+/* ============================================================
+   UPLOAD PIPELINE — runs in Python (dsa.EvidenceVault.ingest):
+   SHA-256 -> exact duplicate (hash map) -> modified copy (content chunks)
+           -> filename conflict -> classify -> store -> Trie index
+============================================================ */
+async function ingestFiles(fileList, caseId, toastWrap, keywords){
+  const c = caseById(caseId);
+  if(!c){ if(toastWrap) showToast(toastWrap,'err','Please select a case first.'); return; }
+  for(const file of fileList){
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    fd.append('caseId', caseId);
+    fd.append('caseTitle', c.title);
+    fd.append('keywords', (keywords||[]).join(','));
+    fd.append('uploadedBy', `${session.label} (${DEPARTMENTS[session.dept].short})`);
+    let res;
+    try{ res = await API.json('/api/upload', { method:'POST', body:fd }); }
+    catch(err){ if(toastWrap) showToast(toastWrap,'err','⚠ Python server not reachable — start it with <b>python app.py</b> and open http://localhost:5000'); continue; }
+
+    // 1) exact duplicate (identical bytes, any name)
+    if(res.status==='duplicate'){
+      const existing = res.existing, hash = res.hash, renamed = res.renamed;
+      const msg = `⚠ <b>DUPLICATE DETECTED</b> — "${escapeHtml(file.name)}" has the same SHA‑256 content fingerprint as <b>${existing.id}</b> ("${escapeHtml(existing.name)}") already stored in ${escapeHtml(caseLabel(existing.caseId))}.${renamed ? ' The file was <b>renamed</b>, but its content is identical.' : ' Same name and 100% identical content.'} Storage blocked.`;
+      if(toastWrap) showToast(toastWrap,'warn',msg);
+      state.duplicates.unshift({ type:'duplicate', name:file.name, existingId:existing.id, existingName:existing.name, existingCase:existing.caseId, attemptedCase:caseId, renamed, hash, time:new Date(), by:session.label });
+      logAction('Blocked', caseId, `${file.name} (exact duplicate of ${existing.id} "${existing.name}")`, existing.id);
+      continue;
+    }
+
+    // 2) modified (tampered) copy detected by content memory
+    if(res.status==='tampered'){
+      const ref = res.existing, hash = res.hash, intact = res.intact, removed = res.removed, added = res.added, sameNm = res.sameName;
+      const nameNote = sameNm ? `It was uploaded under the <b>same name</b>, but the content differs.`
+        : `It was uploaded under a <b>different name</b>, but the system's content memory still matched it to ${ref.id}.`;
+      const detail = `Only <b>${intact}%</b> of the original ${ref.id} content is still present — about <b>${removed}%</b> of the original was removed or altered${added>0 ? `, and about <b>${added}%</b> of this file is new or replaced content` : ''}.`;
+      if(toastWrap) showToast(toastWrap,'err',`🚨 <b>TAMPERED CONTENT DETECTED</b> — "${escapeHtml(file.name)}" is a modified version of <b>${ref.id}</b> ("${escapeHtml(ref.name)}"). ${detail} ${nameNote} Upload blocked.`);
+      const tAlert = { id:'TA-'+String(state.nextAlertNum++).padStart(3,'0'), time:new Date(), file:file.name, refId:ref.id, refName:ref.name, intact, by:session.label, resolved:false };
+      new Set([caseId, ref.caseId]).forEach(cid=>{ const cc = caseById(cid); if(cc) cc.tamperAlerts.push(tAlert); });
+      state.duplicates.unshift({ type:'tampered', name:file.name, existingId:ref.id, existingName:ref.name, existingCase:ref.caseId, attemptedCase:caseId, intact, removed, added, sameName:sameNm, similar:true, hash, time:new Date(), by:session.label });
+      logAction('Tampered', caseId, `${file.name} rejected — modified version of ${ref.id} "${ref.name}" (${intact}% original intact)`, ref.id);
+      continue;
+    }
+
+    // 2b) filename already used (ignoring extension) by different content -> rename
+    if(res.status==='name_conflict'){
+      const nameOwner = res.existing, hash = res.hash;
+      if(toastWrap) showToast(toastWrap,'err',`⛔ <b>File already exists</b> — a file named "${escapeHtml(nameOwner.name.replace(/\.[^.]*$/,''))}" is already stored as <b>${nameOwner.id}</b> ("${escapeHtml(nameOwner.name)}") in ${escapeHtml(caseLabel(nameOwner.caseId))}, and "${escapeHtml(file.name)}" has different content. <b>Please change the name of the file</b> and upload again.`);
+      state.duplicates.unshift({ type:'name', name:file.name, existingId:nameOwner.id, existingName:nameOwner.name, existingCase:nameOwner.caseId, attemptedCase:caseId, hash, time:new Date(), by:session.label });
+      logAction('Blocked', caseId, `${file.name} rejected — file name already used by ${nameOwner.id}; rename required`, nameOwner.id);
+      continue;
+    }
+
+    // 3) genuinely new evidence
+    const ev = res.evidence;
+    c.evidenceIds.push(ev.id);
+    logAction('Uploaded', caseId, file.name, ev.id);
+    if(toastWrap) showToast(toastWrap,'ok',`✓ "${escapeHtml(file.name)}" stored as ${ev.id} · classified as ${ev.category} · fingerprint ${shortHash(ev.hash)}.`);
+  }
+  await syncEvidence();
+  renderStats();
+}
+async function handleCaseFiles(fileList, caseId){
+  const kw = document.getElementById('caseKeywords_'+caseId);
+  const keywords = kw ? kw.value.split(',').map(s=>s.trim()).filter(Boolean) : [];
+  const wrap = document.getElementById('caseUploadToasts_'+caseId);
+  saveDrafts(caseId);
+  await ingestFiles(fileList, caseId, wrap, keywords);
+  const keepToasts = wrap ? wrap.innerHTML : '';
+  renderCaseDetail(caseId);
+  const w2 = document.getElementById('caseUploadToasts_'+caseId);
+  if(w2) w2.innerHTML = keepToasts;
+}
+
+/* Separate Upload tab (Investigation) with explicit case selector */
+function uploadableCases(){ return state.cases.filter(c=>c.stage<4 && !isCaseComplete(c)); }
+function renderUploadView(){
+  const sel = document.getElementById('caseSelectUpload');
+  const keep = sel.value;
+  sel.innerHTML = '<option value="">— Select a case —</option>' + uploadableCases().map(c=>`<option value="${c.id}">${escapeHtml(c.id)} — ${escapeHtml(c.title)}</option>`).join('');
+  if([...sel.options].some(o=>o.value===keep)) sel.value = keep;
+  const dz = document.getElementById('dropzoneUp');
+  const ready = !!sel.value;
+  dz.classList.toggle('disabled', !ready);
+  document.getElementById('dzTitle').textContent = ready ? 'Drop files here or click to browse' : 'Select a case above to enable upload';
+  document.getElementById('dupLog').innerHTML = state.duplicates.length ? state.duplicates.map(d=> d.type==='name' ? `
+    <div class="dup-item">⛔ <b>SAME NAME</b> — <b>${escapeHtml(d.name)}</b> — we already have this name, used by <b>${d.existingId}</b> (${escapeHtml(d.existingCase)}) · different content · <b>rename required</b><br>
+    <span class="mono" style="font-size:11px;">SHA‑256 ${shortHash(d.hash)}</span> · attempted in ${escapeHtml(d.attemptedCase)} by ${escapeHtml(d.by)} · ${fmtTime(d.time)}</div>` : d.type==='tampered' ? `
+    <div class="dup-item tamper">🚨 <b>TAMPERED</b> — <b>${escapeHtml(d.name)}</b> is a modified version of <b>${d.existingId}</b> ("${escapeHtml(d.existingName)}", ${escapeHtml(d.existingCase)})${d.similar ? ` · ${d.intact}% of original intact, ~${d.removed}% removed/altered, ~${d.added}% new` : ' · same name, different content'}${d.sameName?' · same name':' · <b>different name</b>'}<br>
+    <span class="mono" style="font-size:11px;">SHA‑256 ${shortHash(d.hash)}</span> · attempted in ${escapeHtml(d.attemptedCase)} by ${escapeHtml(d.by)} · ${fmtTime(d.time)}</div>` : `
+    <div class="dup-item">⚠ <b>DUPLICATE</b> — <b>${escapeHtml(d.name)}</b> → identical to <b>${d.existingId}</b> ("${escapeHtml(d.existingName)}", ${escapeHtml(d.existingCase)})${d.renamed?' · <b>renamed copy</b>':''}<br>
+    <span class="mono" style="font-size:11px;">SHA‑256 ${shortHash(d.hash)}</span> · attempted in ${escapeHtml(d.attemptedCase)} by ${escapeHtml(d.by)} · ${fmtTime(d.time)}</div>`).join('')
+    : `<div class="empty" style="padding:28px;">No duplicate or tampered uploads detected yet.</div>`;
+  const items = state.evidence.filter(e=>e.caseId===sel.value);
+  document.getElementById('uploadCaseGrid').innerHTML = !sel.value ? `<div class="empty" style="grid-column:1/-1;">Select a case to see its evidence.</div>`
+    : (items.length ? items.slice().reverse().map(evidenceCardHtml).join('') : `<div class="empty" style="grid-column:1/-1;">No evidence in this case yet.</div>`);
+}
+async function handleUploadTabFiles(files){
+  const sel = document.getElementById('caseSelectUpload');
+  const wrap = document.getElementById('uploadToasts');
+  if(!sel.value){ showToast(wrap,'err','Please select a case before uploading.'); return; }
+  const keywords = document.getElementById('uploadKeywords').value.split(',').map(s=>s.trim()).filter(Boolean);
+  await ingestFiles(files, sel.value, wrap, keywords);
+  renderUploadView();
+  renderCases();
+}
+
+function showToast(wrap, type, msg){
+  const t = document.createElement('div');
+  t.className='toast '+type;
+  t.innerHTML = `<span>${msg}</span>`;
+  wrap.prepend(t);
+  setTimeout(()=>t.remove(), 15000);
+}
+
+/* ============================================================
+   VERIFY / TAMPER SIMULATION
+============================================================ */
+async function verifyEvidence(id){
+  const ev = state.evidence.find(e=>e.id===id);
+  if(!ev) return;
+  const r = await API.post('/api/verify/'+id);          // Python re-hashes the stored bytes
+  await syncEvidence();
+  logAction(r.status==='verified' ? 'Verified' : 'Tampered', ev.caseId, ev.name, ev.id);
+  renderStats();
+  if(currentCaseId) renderCaseDetail(currentCaseId);
+  renderVault();
+}
+async function simulateTamper(id){
+  const ev = state.evidence.find(e=>e.id===id);
+  if(!ev) return;
+  await API.post('/api/tamper-sim/'+id);                 // Python flips a byte (demo)
+  await syncEvidence();
+  logAction('Tamper-Sim', ev.caseId, `File "${ev.name}" (${ev.id}) was modified for demonstration`, ev.id);
+  if(currentCaseId) renderCaseDetail(currentCaseId);
+  renderVault();
+}
+function viewEvidence(id){
+  const ev = state.evidence.find(e=>e.id===id);
+  if(!ev) return;
+  logAction('Viewed', ev.caseId, ev.name, ev.id);
+  window.open('/api/file/'+encodeURIComponent(id), '_blank');
+}
+
+/* Keep half-typed text when a panel re-renders */
+function saveDrafts(id){
+  const c = caseById(id); if(!c) return;
+  const map = [['inv_notes_',c.dept.INV,'notes'],['inv_actions_',c.dept.INV,'actions'],['inv_report_',c.dept.INV,'reportText'],
+    ['cyb_analysis_',c.dept.CYB,'analysis'],['cyb_investigation_',c.dept.CYB,'investigation'],['cyb_findings_',c.dept.CYB,'findings'],['cyb_report_',c.dept.CYB,'reportText'],
+    ['for_evver_',c.dept.FOR,'evidenceVerification'],['for_tamper_',c.dept.FOR,'tamperAnalysis'],['for_findings_',c.dept.FOR,'findings'],['for_report_',c.dept.FOR,'reportText'],
+    ['final_conclusion_',c.finalReport,'conclusion'],['final_remarks_',c.finalReport,'remarks']];
+  map.forEach(([pre,obj,key])=>{ const el=document.getElementById(pre+id); if(el) obj[key]=el.value; });
+}
+
+/* ============================================================
+   MERKLE TREE — per case, recomputed from CURRENT file bytes
+============================================================ */
+async function computeCaseTree(caseId, verify=false){
+  // Python recomputes every SHA-256 from the CURRENT bytes and rebuilds the Merkle tree
+  const d = await API.get('/api/merkle/'+encodeURIComponent(caseId)+(verify ? '?verify=1' : ''));
+  const c = caseById(caseId);
+  if(c) c.sealedRoot = d.sealedRoot;
+  if(verify) await syncEvidence();
+  return { items:d.items.map(toEv), cur:d.cur, bad:d.bad, levels:d.levels, root:d.root, sealedRoot:d.sealedRoot };
+}
+function drawMerkleTree(svg, levels, bad){
+  svg.innerHTML='';
+  if(!levels.length){
+    svg.setAttribute('viewBox','0 0 800 160');
+    svg.innerHTML = `<text x="400" y="80" text-anchor="middle" fill="#8B93A6" font-size="13" font-family="Inter">No evidence to visualize for this case yet</text>`;
+    return;
+  }
+  const width = Math.max(800, levels[0].length*140);
+  const rowH = 78, height = levels.length*rowH + 40;
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  const ns = 'http://www.w3.org/2000/svg';
+  const rev = levels.slice().reverse();
+  const pos = rev.map((nodes,li)=>nodes.map((_,i)=>({x:(width/(nodes.length+1))*(i+1), y:30+li*rowH})));
+  for(let li=0; li<pos.length-1; li++){
+    for(let p=0;p<pos[li].length;p++){
+      for(let ch=p*2; ch<Math.min(p*2+2, pos[li+1].length); ch++){
+        const line = document.createElementNS(ns,'line');
+        line.setAttribute('x1',pos[li][p].x); line.setAttribute('y1',pos[li][p].y+14);
+        line.setAttribute('x2',pos[li+1][ch].x); line.setAttribute('y2',pos[li+1][ch].y-14);
+        line.setAttribute('stroke','#DAD3C1'); line.setAttribute('stroke-width','1.5');
+        svg.appendChild(line);
+      }
+    }
+  }
+  const anyBad = bad.some(Boolean);
+  rev.forEach((nodes,li)=>{
+    nodes.forEach((h,i)=>{
+      const {x,y} = pos[li][i];
+      const isRoot = li===0, isLeaf = li===rev.length-1;
+      const leafBad = isLeaf && bad[i];
+      const circle = document.createElementNS(ns,'circle');
+      circle.setAttribute('cx',x); circle.setAttribute('cy',y); circle.setAttribute('r', isRoot?16:12);
+      circle.setAttribute('fill', isRoot ? (anyBad?'#AE3B34':'#1C2541') : (leafBad?'#F6E7E4':'#FFFFFF'));
+      circle.setAttribute('stroke', isRoot ? '#9C6B27' : (leafBad?'#AE3B34':(isLeaf?'#2F6B4F':'#C7BEA6')));
+      circle.setAttribute('stroke-width', isRoot?2.5:1.8);
+      svg.appendChild(circle);
+      const label = document.createElementNS(ns,'text');
+      label.setAttribute('x',x); label.setAttribute('y',y+28); label.setAttribute('text-anchor','middle');
+      label.setAttribute('font-size','9.5'); label.setAttribute('font-family','JetBrains Mono, monospace');
+      label.setAttribute('fill', leafBad?'#AE3B34':'#5B6478'); label.textContent = shortHash(h);
+      svg.appendChild(label);
+      if(isLeaf){
+        const ev = document.createElementNS(ns,'text');
+        ev.setAttribute('x',x); ev.setAttribute('y',y+40); ev.setAttribute('text-anchor','middle');
+        ev.setAttribute('font-size','9'); ev.setAttribute('font-family','Inter'); ev.setAttribute('fill','#8B93A6');
+        ev.textContent = 'leaf ' + (i+1) + (leafBad?' · TAMPERED':'');
+        svg.appendChild(ev);
+      }
+      if(isRoot){
+        const rl = document.createElementNS(ns,'text');
+        rl.setAttribute('x',x); rl.setAttribute('y',y-24); rl.setAttribute('text-anchor','middle');
+        rl.setAttribute('font-size','10'); rl.setAttribute('font-family','Inter'); rl.setAttribute('font-weight','700');
+        rl.setAttribute('fill','#9C6B27'); rl.textContent='MERKLE ROOT';
+        svg.appendChild(rl);
+      }
+    });
+  });
+}
+async function renderMerkleInto(caseId, svgId, rootId, pillId){
+  const svg = document.getElementById(svgId), rootEl = document.getElementById(rootId), pill = document.getElementById(pillId);
+  if(!svg) return;
+  const c = caseById(caseId);
+  if(!c){
+    rootEl.textContent = '— select a case to view its tree —';
+    pill.innerHTML = `<span class="status-pill unsealed">No Case Selected</span>`;
+    drawMerkleTree(svg, [], []); return;
+  }
+  const t = await computeCaseTree(caseId);
+  if(!t.root){
+    rootEl.textContent = `— ${c.id} has no evidence yet —`;
+    pill.innerHTML = `<span class="status-pill unsealed">No Evidence</span>`;
+  } else if(openAlerts(c).length){
+    rootEl.textContent = t.root + (c.sealedRoot ? '\n(sealed root: ' + c.sealedRoot + ')' : '');
+    pill.innerHTML = `<span class="status-pill tampered">🚨 Tamper alert — ${openAlerts(c).length} unresolved · ${c.sealedRoot ? 'seal not trusted' : 'case cannot be sealed'}</span>`;
+  } else if(!c.sealedRoot){
+    rootEl.textContent = t.root;
+    pill.innerHTML = `<span class="status-pill unsealed">Unsealed — root not yet locked</span>`;
+  } else if(t.root === c.sealedRoot){
+    rootEl.textContent = t.root;
+    pill.innerHTML = `<span class="status-pill verified">✓ Case Verified — matches sealed root</span>`;
+  } else {
+    rootEl.textContent = t.root + '\n(sealed root was ' + c.sealedRoot + ')';
+    pill.innerHTML = `<span class="status-pill tampered">✕ Tampered — root mismatch</span>`;
+  }
+  drawMerkleTree(svg, t.levels, t.bad);
+}
+async function renderIntegrity(){
+  const id = document.getElementById('caseSelectIntegrity').value;
+  const c = caseById(id);
+  document.getElementById('integrityAlerts').innerHTML = c ? renderAlertsHtml(c) : '';
+  await renderMerkleInto(id, 'merkleSvg', 'merkleRootVal', 'statusPillWrap');
+  document.getElementById('sealBtn').style.display = (session && session.dept==='INV' && c && c.stage<4 && !c.sealedRoot) ? '' : 'none';
+}
+async function sealCaseVault(){
+  const id = document.getElementById('caseSelectIntegrity').value;
+  const c = caseById(id);
+  if(!c){ alert('Select a case first.'); return; }
+  if(openAlerts(c).length){
+    alert('This case cannot be sealed: it has '+openAlerts(c).length+' unresolved tamper alert(s). An Inspector / DSP / SP must review and resolve them first.');
+    logAction('Blocked', id, `Seal refused — ${openAlerts(c).length} unresolved tamper alert(s)`);
+    return;
+  }
+  const r = await API.post('/api/seal/'+encodeURIComponent(id));
+  if(!r.root){ alert('Upload evidence to this case before sealing.'); return; }
+  c.sealedRoot = r.root;
+  logAction('Sealed', id, `${c.title} sealed with ${evidenceCountForCase(id)} item(s) — root ${shortHash(r.root)}`);
+  renderIntegrity();
+}
+async function verifyAllIntegrity(){
+  const id = document.getElementById('caseSelectIntegrity').value;
+  if(!id){ alert('Select a case first.'); return; }
+  const t = await computeCaseTree(id, true);
+  t.items.forEach((ev,i)=>{ logAction(t.bad[i]?'Tampered':'Verified', id, ev.name, ev.id); });
+  const open = caseById(id) ? openAlerts(caseById(id)) : [];
+  if(open.length) logAction('Tampered', id, `Verification run — ${open.length} unresolved tamper alert(s) on this case; it cannot be certified or sealed`);
+  renderStats(); renderIntegrity();
+}
+
+/* ============================================================
+   WORKFLOW ACTIONS
+============================================================ */
+function submitEntry(caseId){
+  const c = caseById(caseId);
+  if(!c || !canActOn(c)) return;
+  const st = stageOf(c);
+  if(st.dept==='INV'){
+    const notes = document.getElementById('inv_notes_'+caseId).value.trim();
+    const actions = document.getElementById('inv_actions_'+caseId).value.trim();
+    const reportText = document.getElementById('inv_report_'+caseId).value.trim();
+    if(!notes || !reportText){ alert('Please complete the Investigation Notes and Investigation Report before submitting.'); return; }
+    c.dept.INV.notes = notes; c.dept.INV.actions = actions; c.dept.INV.reportText = reportText; c.dept.INV.submittedAt = new Date();
+    logAction('Submitted', caseId, 'Investigation report submitted by ' + session.label);
+  } else if(st.dept==='CYB'){
+    const analysis = document.getElementById('cyb_analysis_'+caseId).value.trim();
+    const investigation = document.getElementById('cyb_investigation_'+caseId).value.trim();
+    const findings = document.getElementById('cyb_findings_'+caseId).value.trim();
+    const reportText = document.getElementById('cyb_report_'+caseId).value.trim();
+    if(!analysis || !findings || !reportText){ alert('Please complete Digital Evidence Analysis, Findings and the Investigation Report before submitting.'); return; }
+    c.dept.CYB.analysis = analysis; c.dept.CYB.investigation = investigation; c.dept.CYB.findings = findings; c.dept.CYB.reportText = reportText; c.dept.CYB.submittedAt = new Date();
+    logAction('Submitted', caseId, 'Cyber crime investigation report submitted by ' + session.label);
+  } else if(st.dept==='FOR'){
+    const ev = document.getElementById('for_evver_'+caseId).value.trim();
+    const tamper = document.getElementById('for_tamper_'+caseId).value.trim();
+    const findings = document.getElementById('for_findings_'+caseId).value.trim();
+    const reportText = document.getElementById('for_report_'+caseId).value.trim();
+    if(!c.dept.FOR.merkleRoot){ alert('Please run SHA-256 & Merkle Verification before submitting the forensic report.'); return; }
+    if(!ev || !findings || !reportText){ alert('Please complete Evidence Verification notes, Findings and the Forensic Report before submitting.'); return; }
+    c.dept.FOR.evidenceVerification = ev; c.dept.FOR.tamperAnalysis = tamper; c.dept.FOR.findings = findings; c.dept.FOR.reportText = reportText; c.dept.FOR.submittedAt = new Date();
+    logAction('Submitted', caseId, 'Forensic report submitted by ' + session.label);
+  }
+  c.stage++;
+  renderCaseDetail(caseId);
+  renderCases();
+}
+
+async function submitReview(caseId, decision){
+  const c = caseById(caseId);
+  if(!c || !canActOn(c)) return;
+  const st = stageOf(c);
+  const remarkEl = document.getElementById('review_remark_'+caseId);
+  const remark = remarkEl ? remarkEl.value.trim() : '';
+  if(decision==='returned' && !remark){ alert('Please add a remark explaining why the case is being returned.'); return; }
+  if(decision==='approved' && st.dept==='INV' && st.kind==='forward' && openAlerts(c).length){
+    alert('This case cannot be sealed or forwarded: it has '+openAlerts(c).length+' unresolved tamper alert(s). Resolve them (Inspector / DSP / SP) or return the case for revision.');
+    logAction('Blocked', caseId, `Forwarding refused — ${openAlerts(c).length} unresolved tamper alert(s); case not sealed`);
+    return;
+  }
+
+  c.reviews.push({ stageIndex:c.stage, dept:st.dept, code:st.code, label:posLabel(st.dept,st.code), decision, remark, by:session.label, at:new Date() });
+  logAction(decision==='approved' ? 'Approved' : 'Returned', caseId, `${posLabel(st.dept,st.code)}: ${decision==='approved'?'approved and forwarded':'returned for revision'}${remark? ' — '+remark:''}`);
+
+  if(decision==='approved' && st.dept==='INV' && st.kind==='forward' && !c.sealedRoot){
+    const r = await API.post('/api/seal/'+encodeURIComponent(caseId));
+    if(r.root){ c.sealedRoot = r.root; logAction('Sealed', caseId, `Evidence vault sealed on forwarding — root ${shortHash(r.root)}`); }
+  }
+  if(decision==='returned'){
+    // send back to the first (entry) stage of the same department
+    const entryIdx = PIPELINE.findIndex(p=>p.dept===st.dept && p.kind==='entry');
+    c.stage = entryIdx;
+  } else {
+    c.stage++;
+  }
+  renderCaseDetail(caseId);
+  renderCases();
+}
+
+function finalApprove(caseId){
+  const c = caseById(caseId);
+  if(!c || !canActOn(c)) return;
+  const remarkEl = document.getElementById('review_remark_'+caseId);
+  const remark = remarkEl ? remarkEl.value.trim() : '';
+  const st = stageOf(c);
+  c.reviews.push({ stageIndex:c.stage, dept:st.dept, code:st.code, label:posLabel(st.dept,st.code), decision:'approved', remark, by:session.label, at:new Date() });
+  logAction('Approved', caseId, `Final forensic approval by ${session.label} — case report compiled`);
+
+  // compile the report
+  c.finalReport.preparedBy = `${posLabel(c.createdBy.dept, c.createdBy.code)} (${c.createdBy.label})`;
+  c.finalReport.reviewedBy = c.reviews.filter(r=>r.decision==='approved').map(r=>`${r.label} — ${r.by}`);
+  c.finalReport.approvedBy = `${session.label} (${DEPARTMENTS[session.dept].short})`;
+  c.finalReport.compiledAt = new Date();
+  c.finalReport.status = 'Compiled — Awaiting Final Authentication';
+
+  c.stage++;
+  renderCaseDetail(caseId);
+  renderCases();
+}
+
+async function runForensicVerification(caseId){
+  const c = caseById(caseId);
+  saveDrafts(caseId);
+  const t = await computeCaseTree(caseId, true);
+  if(!t.items.length){ alert('This case has no evidence items to verify. Evidence must be uploaded by the Investigation Department first.'); return; }
+  const lines = [];
+  t.items.forEach((ev,i)=>{
+    ev.status = t.bad[i] ? 'tampered' : 'verified';
+    lines.push(`${ev.id} (${ev.name}): ${ev.status.toUpperCase()}\n   stored   ${ev.hash}\n   current  ${t.cur[i]}`);
+  });
+  const rootMismatch = c.sealedRoot && t.root !== c.sealedRoot;
+  const openA = openAlerts(c);
+  const anyBad = t.bad.some(Boolean) || rootMismatch;
+  if(openA.length) lines.push(`\nTAMPER ALERTS: ${openA.length} unresolved tampered upload attempt(s) recorded for this case`);
+  lines.push(`\nRecomputed Merkle root: ${t.root}`);
+  if(c.sealedRoot) lines.push(`Sealed Merkle root:     ${c.sealedRoot}`);
+  c.dept.FOR.merkleRoot = t.root;
+  c.dept.FOR.merkleStatus = anyBad ? 'TAMPERING DETECTED — recomputed Merkle root does not match the sealed root'
+    : openA.length ? 'TAMPER ALERT — '+openA.length+' tampered upload attempt(s) recorded for this case and not yet resolved'
+    : (c.sealedRoot ? 'All evidence verified — recomputed Merkle root matches the sealed root' : 'All evidence verified — Merkle root computed');
+  c.dept.FOR.shaSummary = lines.join('\n');
+  logAction((anyBad||openA.length)?'Tampered':'Verified', caseId, `SHA-256 & Merkle verification run by ${session.label} — root ${shortHash(t.root)}${anyBad?' (MISMATCH)':(openA.length?' (TAMPER ALERT)':'')}`);
+  renderStats();
+  renderCaseDetail(caseId);
+}
+
+async function signFinalReport(caseId){
+  const c = caseById(caseId);
+  if(!c || !canActOn(c)) return;
+  const conclusion = document.getElementById('final_conclusion_'+caseId).value.trim();
+  const remarks = document.getElementById('final_remarks_'+caseId).value.trim();
+  if(!conclusion){ alert('Please enter the Final Conclusion before signing.'); return; }
+  c.finalReport.conclusion = conclusion;
+  c.finalReport.remarks = remarks;
+
+  const payload = JSON.stringify({ id:c.id, title:c.title, stage:c.stage, dept:c.dept, conclusion, remarks, approvedBy:c.finalReport.approvedBy, at:new Date().toISOString() });
+  const sigHash = (await API.post('/api/sign', { payload })).signature;     // SHA-256 in Python
+  c.finalReport.digitalSignature = sigHash;
+  c.finalReport.status = 'Final — Sealed';
+  c.finalReport.signedBy = `${session.label} (${DEPARTMENTS[session.dept].short})`;
+  c.finalReport.signedAt = new Date();
+  c.status = 'complete';
+
+  logAction('Signed', caseId, `Final case report digitally signed by ${session.label} — signature ${shortHash(sigHash)}`);
+  renderStats();
+  renderCases();
+  renderCaseDetail(caseId);
+}
+
+/* ============================================================
+   CASE DETAIL RENDERING
+============================================================ */
+function renderStepper(c){
+  const groups = [['INV','Investigation'], ['CYB','Cyber Crime'], ['FOR','Digital Forensics']];
+  let html = '<div class="stepper">';
+  groups.forEach(([deptKey, label])=>{
+    const idxs = PIPELINE.map((p,i)=>({p,i})).filter(x=>x.p.dept===deptKey);
+    html += `<div class="step-group"><div class="grp-label">${label}</div><div class="step-row">`;
+    idxs.forEach(({p,i})=>{
+      let cls = 'pending';
+      if(i < c.stage || (i===c.stage && isCaseComplete(c))) cls='done';
+      else if(i === c.stage) cls='current';
+      html += `<div class="step-dot ${cls}" title="${escapeHtml(posLabel(p.dept,p.code))}">${p.code}</div>`;
+    });
+    html += `</div></div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function deptStatusLabel(c, deptKey){
+  const submitted = c.dept[deptKey].submittedAt;
+  const stageIdxsForDept = PIPELINE.map((p,i)=>i).filter(i=>PIPELINE[i].dept===deptKey);
+  const deptDone = c.stage > Math.max(...stageIdxsForDept) || isCaseComplete(c);
+  if(deptDone) return {cls:'approved', label:'Approved & Forwarded'};
+  if(submitted) return {cls:'submitted', label:'Submitted — In Review'};
+  return {cls:'pending', label:'Pending'};
+}
+
+function renderReviewList(c, deptKey){
+  const items = c.reviews.filter(r=>r.dept===deptKey);
+  if(!items.length) return '<div class="lock-note">No reviews logged yet for this department.</div>';
+  return items.map(r=>`
+    <div class="review-item ${r.decision}">
+      <div class="rline"><span class="rwho">${escapeHtml(r.label)} — ${escapeHtml(r.by)}</span><span class="rwhen">${fmtTime(r.at)}</span></div>
+      <div>${r.decision==='approved' ? '✓ Approved' : '✕ Returned for revision'}${r.remark? ' — '+escapeHtml(r.remark) : ''}</div>
+    </div>`).join('');
+}
+
+function renderEvidenceSection(c){
+  const items = state.evidence.filter(e=>e.caseId===c.id);
+  const canUpload = session.dept==='INV' && c.stage < 4 && !isCaseComplete(c);
+  let html = `<section class="block"><div class="block-head"><h2>Evidence</h2><div class="sub">${items.length} item(s) linked to this case</div></div>`;
+
+  if(canUpload){
+    html += `
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="field"><label>Keywords (comma separated, optional)</label><input type="text" id="caseKeywords_${c.id}" placeholder="e.g. laptop, cctv, witness statement"></div>
+      <div class="dropzone" id="dropzone_${c.id}">
+        <div class="ic">⬆</div>
+        <div class="t1">Drop files here or click to browse</div>
+        <div class="t2">Each file is hashed and fingerprinted the moment it lands</div>
+        <div class="filetypes"><span>🖼 Image</span><span>🎞 Video</span><span>🎧 Audio</span><span>📄 PDF</span><span>📃 Document</span></div>
+      </div>
+      <input type="file" id="fileInput_${c.id}" multiple style="display:none">
+      <div id="caseUploadToasts_${c.id}" style="margin-top:12px;"></div>
+    </div>`;
+  }
+
+  if(!items.length){
+    html += `<div class="empty"><div class="ic">🗂</div>No evidence uploaded yet.</div></section>`;
+    return html;
+  }
+
+  html += `<div class="tag-grid">` + items.map(ev=>{
+    const st = ev.status;
+    const badgeClass = st==='verified' ? 'verified' : (st==='tampered' ? 'tampered' : 'pending');
+    const badgeLabel = st==='verified' ? 'Verified' : (st==='tampered' ? 'Tampered' : 'Unverified');
+    const canForensicAct = session.dept==='FOR' && !isCaseComplete(c);
+    const canCyberAct = session.dept==='CYB' && !isCaseComplete(c);
+    return `
+    <div class="etag">
+      <div class="cat">${catIcon[ev.category]} ${ev.category}</div>
+      <div class="fn">${escapeHtml(ev.name)}</div>
+      <div class="caseid">${ev.id} · uploaded by ${escapeHtml(ev.uploadedBy||'—')}</div>
+      <div class="hash mono">${shortHash(ev.hash)}</div>
+      <div class="foot"><span class="badge ${badgeClass}">${badgeLabel}</span><span style="font-size:11px; color:var(--ink-faint);">${(ev.size/1024).toFixed(1)} KB</span></div>
+      ${ev.tamperAttempts ? `<div style="font-size:11px; color:var(--tampered); font-weight:700; margin-top:8px;">🚨 ${ev.tamperAttempts} tampered re-upload attempt(s) blocked</div>` : ''}
+      <div class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="viewEvidence('${ev.id}')">View</button>
+        ${(canForensicAct||canCyberAct) ? `<button class="btn btn-ghost btn-sm" onclick="verifyEvidence('${ev.id}')">Verify</button>` : ''}
+        ${canForensicAct ? `<button class="btn btn-ghost btn-sm" onclick="simulateTamper('${ev.id}')">Tamper Sim</button>` : ''}
+      </div>
+    </div>`;
+  }).join('') + `</div></section>`;
+  return html;
+}
+
+function renderInvestigationPanel(c){
+  const d = c.dept.INV;
+  const status = deptStatusLabel(c, 'INV');
+  const st = stageOf(c);
+  const isMyEntry = canActOn(c) && st.dept==='INV' && st.kind==='entry';
+  const isMyReview = canActOn(c) && st.dept==='INV' && (st.kind==='review' || st.kind==='forward');
+
+  let body = '';
+  if(isMyEntry){
+    body = `
+      <div class="field"><label>Investigation Notes</label><textarea id="inv_notes_${c.id}">${escapeHtml(d.notes)}</textarea></div>
+      <div class="field"><label>Actions Performed / Evidence Collection Summary</label><textarea id="inv_actions_${c.id}">${escapeHtml(d.actions)}</textarea></div>
+      <div class="field"><label>Investigation Report</label><textarea id="inv_report_${c.id}" style="min-height:110px;">${escapeHtml(d.reportText)}</textarea></div>
+      <button class="btn btn-primary" onclick="submitEntry('${c.id}')">Submit Investigation Report →</button>`;
+  } else if(isMyReview){
+    body = `
+      ${renderInvReadonly(d)}
+      <div class="field"><label>Remarks</label><textarea id="review_remark_${c.id}" placeholder="Add your review remarks"></textarea></div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-primary" onclick="submitReview('${c.id}','approved')">${st.kind==='forward' ? 'Approve & Forward to Cyber Crime →' : 'Approve & Forward →'}</button>
+        <button class="btn btn-danger" onclick="submitReview('${c.id}','returned')">Return for Revision</button>
+      </div>`;
+  } else if(d.submittedAt){
+    body = renderInvReadonly(d);
+  } else {
+    body = `<div class="lock-note">Awaiting submission by the Investigating Officer (SI).</div>`;
+  }
+
+  return `<div class="dept-panel">
+    <div class="dp-head"><h3><span class="dept-badge INV">Investigation</span></h3><span class="dp-status ${status.cls}">${status.label}</span></div>
+    ${body}
+    <div style="margin-top:14px;"><div class="kv-grid"><div class="k">Review Trail</div></div>${renderReviewList(c,'INV')}</div>
+  </div>`;
+}
+function renderInvReadonly(d){
+  return `
+    <div class="readonly-block"><div class="lbl">Investigation Notes</div>${nl2br(d.notes)||'—'}</div>
+    <div class="readonly-block"><div class="lbl">Actions Performed</div>${nl2br(d.actions)||'—'}</div>
+    <div class="readonly-block"><div class="lbl">Investigation Report</div>${nl2br(d.reportText)||'—'}</div>`;
+}
+
+function renderCyberPanel(c){
+  const d = c.dept.CYB;
+  const status = deptStatusLabel(c, 'CYB');
+  const st = stageOf(c);
+  const isMyEntry = canActOn(c) && st.dept==='CYB' && st.kind==='entry';
+  const isMyReview = canActOn(c) && st.dept==='CYB' && (st.kind==='review' || st.kind==='forward');
+  const locked = c.stage < 4;
+
+  let body = '';
+  if(locked){
+    body = `<div class="lock-note">This case has not yet reached the Cyber Crime Department.</div>`;
+  } else if(isMyEntry){
+    body = `
+      <div class="field"><label>Digital Evidence Analysis</label><textarea id="cyb_analysis_${c.id}">${escapeHtml(d.analysis)}</textarea></div>
+      <div class="field"><label>Cybercrime Investigation Notes</label><textarea id="cyb_investigation_${c.id}">${escapeHtml(d.investigation)}</textarea></div>
+      <div class="field"><label>Findings</label><textarea id="cyb_findings_${c.id}">${escapeHtml(d.findings)}</textarea></div>
+      <div class="field"><label>Investigation Report</label><textarea id="cyb_report_${c.id}" style="min-height:110px;">${escapeHtml(d.reportText)}</textarea></div>
+      <button class="btn btn-primary" onclick="submitEntry('${c.id}')">Submit Cyber Crime Report →</button>`;
+  } else if(isMyReview){
+    body = `
+      ${renderCybReadonly(d)}
+      <div class="field"><label>Remarks</label><textarea id="review_remark_${c.id}" placeholder="Add your review remarks"></textarea></div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-primary" onclick="submitReview('${c.id}','approved')">${st.kind==='forward' ? 'Approve & Forward to Digital Forensics →' : 'Approve & Forward →'}</button>
+        <button class="btn btn-danger" onclick="submitReview('${c.id}','returned')">Return for Revision</button>
+      </div>`;
+  } else if(d.submittedAt){
+    body = renderCybReadonly(d);
+  } else {
+    body = `<div class="lock-note">Awaiting submission by the Cyber Crime Investigating Officer (SI).</div>`;
+  }
+
+  return `<div class="dept-panel">
+    <div class="dp-head"><h3><span class="dept-badge CYB">Cyber Crime</span></h3><span class="dp-status ${status.cls}">${status.label}</span></div>
+    ${body}
+    ${!locked ? `<div style="margin-top:14px;">${renderReviewList(c,'CYB')}</div>` : ''}
+  </div>`;
+}
+function renderCybReadonly(d){
+  return `
+    <div class="readonly-block"><div class="lbl">Digital Evidence Analysis</div>${nl2br(d.analysis)||'—'}</div>
+    <div class="readonly-block"><div class="lbl">Cybercrime Investigation</div>${nl2br(d.investigation)||'—'}</div>
+    <div class="readonly-block"><div class="lbl">Findings</div>${nl2br(d.findings)||'—'}</div>
+    <div class="readonly-block"><div class="lbl">Investigation Report</div>${nl2br(d.reportText)||'—'}</div>`;
+}
+
+function renderForensicPanel(c){
+  const d = c.dept.FOR;
+  const status = deptStatusLabel(c, 'FOR');
+  const st = stageOf(c);
+  const isMyEntry = canActOn(c) && st.dept==='FOR' && st.kind==='entry';
+  const isMyReview = canActOn(c) && st.dept==='FOR' && st.kind==='review';
+  const isMyFinal = canActOn(c) && st.dept==='FOR' && st.kind==='finalApprove';
+  const isMySign = canActOn(c) && st.dept==='FOR' && st.kind==='sign';
+  const locked = c.stage < 8;
+
+  let body = '';
+  if(locked){
+    body = `<div class="lock-note">This case has not yet reached the Digital Forensics Department.</div>`;
+  } else if(isMyEntry){
+    body = `
+      <div class="how-to"><b>How to run:</b> click the button below. It re-reads every evidence file in this case, recomputes each SHA‑256 fingerprint, compares it to the fingerprint stored at upload, rebuilds the Merkle tree and compares the root with the sealed root. The result appears in the output box and the tree below. (Needs at least one uploaded evidence item.)</div>
+      <button class="btn btn-ghost" onclick="runForensicVerification('${c.id}')">🔐 Run SHA‑256 &amp; Merkle Verification</button>
+      <div class="field" style="margin-top:12px;"><label>SHA‑256 Verification Output</label><textarea id="for_sha_${c.id}" readonly style="min-height:130px; font-family:'JetBrains Mono',monospace; font-size:11px;">${escapeHtml(d.shaSummary)}</textarea></div>
+      ${d.merkleRoot ? `<div class="root-card" style="margin-bottom:14px;"><div class="lbl">Merkle Root</div><div class="val mono">${d.merkleRoot}</div><div style="margin-top:8px; font-size:12.5px;">${escapeHtml(d.merkleStatus)}</div></div>` : ''}
+      <div class="field"><label>Evidence Verification Notes</label><textarea id="for_evver_${c.id}">${escapeHtml(d.evidenceVerification)}</textarea></div>
+      <div class="field"><label>Tamper Analysis</label><textarea id="for_tamper_${c.id}">${escapeHtml(d.tamperAnalysis)}</textarea></div>
+      <div class="field"><label>Findings</label><textarea id="for_findings_${c.id}">${escapeHtml(d.findings)}</textarea></div>
+      <div class="field"><label>Forensic Report</label><textarea id="for_report_${c.id}" style="min-height:110px;">${escapeHtml(d.reportText)}</textarea></div>
+      <button class="btn btn-primary" onclick="submitEntry('${c.id}')">Submit Forensic Report →</button>`;
+  } else if(isMyReview){
+    body = `
+      ${renderForReadonly(d)}
+      <div class="field"><label>Remarks</label><textarea id="review_remark_${c.id}" placeholder="Add your review remarks"></textarea></div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-primary" onclick="submitReview('${c.id}','approved')">Approve &amp; Forward →</button>
+        <button class="btn btn-danger" onclick="submitReview('${c.id}','returned')">Return for Revision</button>
+      </div>`;
+  } else if(isMyFinal){
+    body = `
+      ${renderForReadonly(d)}
+      <div class="field"><label>Remarks</label><textarea id="review_remark_${c.id}" placeholder="Final forensic approval remarks"></textarea></div>
+      <button class="btn btn-primary" onclick="finalApprove('${c.id}')">Give Final Forensic Approval &amp; Compile Case Report →</button>`;
+  } else if(isMySign){
+    body = `
+      ${renderForReadonly(d)}
+      <div class="lock-note" style="margin-bottom:12px;">The complete case report has been compiled. Review it below, then authenticate and digitally sign to seal the case.</div>
+      <div id="reportPreview_${c.id}"></div>
+      <div class="field"><label>Final Conclusion</label><textarea id="final_conclusion_${c.id}">${escapeHtml(c.finalReport.conclusion)}</textarea></div>
+      <div class="field"><label>Investigator's / Approving Authority's Remarks</label><textarea id="final_remarks_${c.id}">${escapeHtml(c.finalReport.remarks)}</textarea></div>
+      <button class="btn btn-primary" onclick="signFinalReport('${c.id}')">🔏 Authenticate &amp; Digitally Sign Final Report</button>`;
+  } else if(d.submittedAt){
+    body = renderForReadonly(d);
+  } else {
+    body = `<div class="lock-note">Awaiting submission by the Forensic Officer.</div>`;
+  }
+
+  return `<div class="dept-panel">
+    <div class="dp-head"><h3><span class="dept-badge FOR">Digital Forensics</span></h3><span class="dp-status ${status.cls}">${status.label}</span></div>
+    ${body}
+    ${!locked ? `<div style="margin-top:14px;">${renderReviewList(c,'FOR')}</div>` : ''}
+  </div>`;
+}
+function renderForReadonly(d){
+  return `
+    ${d.merkleRoot ? `<div class="root-card" style="margin-bottom:14px;"><div class="lbl">Merkle Root</div><div class="val mono">${d.merkleRoot}</div><div style="margin-top:8px; font-size:12.5px;">${escapeHtml(d.merkleStatus)}</div></div>` : ''}
+    ${d.shaSummary ? `<div class="readonly-block mono" style="font-size:11px;"><div class="lbl">SHA‑256 Verification Output</div>${nl2br(d.shaSummary)}</div>` : ''}
+    <div class="readonly-block"><div class="lbl">Evidence Verification</div>${nl2br(d.evidenceVerification)||'—'}</div>
+    <div class="readonly-block"><div class="lbl">Tamper Analysis</div>${nl2br(d.tamperAnalysis)||'—'}</div>
+    <div class="readonly-block"><div class="lbl">Findings</div>${nl2br(d.findings)||'—'}</div>
+    <div class="readonly-block"><div class="lbl">Forensic Report</div>${nl2br(d.reportText)||'—'}</div>`;
+}
+
+function buildCaseReportHtml(c){
+  const items = state.evidence.filter(e=>e.caseId===c.id);
+  const custodyFor = evId => state.custody.filter(x=>x.evId===evId).slice().reverse()
+    .map(x=>`${x.action} by ${x.user} — ${fmtTime(x.time)}`).join('<br>') || '—';
+  const sealed = c.finalReport.status === 'Final — Sealed';
+
+  return `
+  <div class="report-page" id="reportPrintArea">
+    <h2>Case Report — ${escapeHtml(c.id)}</h2>
+
+    <div class="report-section">
+      <h4>1 · Case Information</h4>
+      <div class="report-grid">
+        <div><div class="k">Case ID</div><div class="v">${escapeHtml(c.id)}</div></div>
+        <div><div class="k">Case Title</div><div class="v">${escapeHtml(c.title)}</div></div>
+        <div style="grid-column:1/-1;"><div class="k">Case Description</div><div class="v">${nl2br(c.description)||'—'}</div></div>
+        <div><div class="k">Case Created Date</div><div class="v">${fmtTime(c.createdAt)}</div></div>
+        <div><div class="k">Investigating Officer</div><div class="v">${escapeHtml(c.createdBy.label)}</div></div>
+        <div><div class="k">Department</div><div class="v">Investigation</div></div>
+      </div>
+    </div>
+
+    <div class="report-section">
+      <h4>2 · Evidence Details</h4>
+      ${items.length ? items.map(ev=>`
+        <div class="ev-report-row">
+          <b>${escapeHtml(ev.id)}</b> — ${escapeHtml(ev.name)} (${ev.category})<br>
+          Uploaded by: ${escapeHtml(ev.uploadedBy||'—')} · ${fmtTime(ev.uploadedAt)}<br>
+          SHA‑256: <span class="mono">${ev.hash}</span><br>
+          Merkle Verification Status: ${ev.status==='verified' ? 'Verified — Integrity Intact' : (ev.status==='tampered' ? 'Tampering Detected' : 'Unverified')}<br>
+          ${ev.tamperAttempts ? `Tampered re-upload attempts blocked: ${ev.tamperAttempts}<br>` : ''}Chain of Custody: ${custodyFor(ev.id)}
+        </div>`).join('') : '<div class="lock-note">No evidence items recorded.</div>'}
+    </div>
+
+    ${c.tamperAlerts.length ? `<div class="report-section"><h4>Tamper Alerts</h4>${c.tamperAlerts.map(a=>`<div class="ev-report-row"><b>${a.id}</b> — "${escapeHtml(a.file)}" modified version of ${a.refId} (${a.intact}% original intact) · ${a.resolved ? 'Resolved by '+escapeHtml(a.resolvedBy)+' — '+escapeHtml(a.remark) : '<b>UNRESOLVED</b>'}</div>`).join('')}</div>` : ''}
+    <div class="report-section">
+      <h4>3 · Investigation Details</h4>
+      <div class="report-grid">
+        <div style="grid-column:1/-1;"><div class="k">Investigation Summary</div><div class="v">${nl2br(c.dept.INV.notes)||'—'}</div></div>
+        <div style="grid-column:1/-1;"><div class="k">Actions Performed</div><div class="v">${nl2br(c.dept.INV.actions)||'—'}</div></div>
+        <div style="grid-column:1/-1;"><div class="k">Important Observations (Cyber Crime)</div><div class="v">${nl2br(c.dept.CYB.investigation)||'—'}</div></div>
+        <div style="grid-column:1/-1;"><div class="k">Evidence Analysis</div><div class="v">${nl2br(c.dept.CYB.analysis)||'—'} ${c.dept.FOR.evidenceVerification? '<br>'+nl2br(c.dept.FOR.evidenceVerification):''}</div></div>
+        <div style="grid-column:1/-1;"><div class="k">Findings</div><div class="v">${nl2br(c.dept.CYB.findings)||'—'}${c.dept.FOR.findings? '<br>'+nl2br(c.dept.FOR.findings):''}</div></div>
+      </div>
+    </div>
+
+    <div class="report-section">
+      <h4>4 · Final Conclusion</h4>
+      <div class="report-grid">
+        <div style="grid-column:1/-1;"><div class="k">Overall Case Findings</div><div class="v">${nl2br(c.finalReport.conclusion)||'—'}</div></div>
+        <div style="grid-column:1/-1;"><div class="k">Evidence Supporting the Findings</div><div class="v">${nl2br(c.dept.FOR.tamperAnalysis)||'—'}</div></div>
+        <div style="grid-column:1/-1;"><div class="k">Final Conclusion</div><div class="v">${nl2br(c.finalReport.conclusion)||'—'}</div></div>
+        <div style="grid-column:1/-1;"><div class="k">Investigator's Remarks</div><div class="v">${nl2br(c.finalReport.remarks)||'—'}</div></div>
+      </div>
+    </div>
+
+    <div class="report-section">
+      <h4>5 · Approval Details</h4>
+      <div class="report-grid">
+        <div><div class="k">Prepared By</div><div class="v">${escapeHtml(c.finalReport.preparedBy||'—')}</div></div>
+        <div><div class="k">Approved By</div><div class="v">${escapeHtml(c.finalReport.approvedBy||'—')}</div></div>
+        <div style="grid-column:1/-1;"><div class="k">Reviewed By</div><div class="v">${(c.finalReport.reviewedBy||[]).map(escapeHtml).join('; ')||'—'}</div></div>
+        <div><div class="k">Approval Date/Time</div><div class="v">${c.finalReport.compiledAt? fmtTime(c.finalReport.compiledAt):'—'}</div></div>
+        <div><div class="k">Final Report Status</div><div class="v">${escapeHtml(c.finalReport.status)}</div></div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-title">🔏 Digital Signature</div>
+        ${sealed ? `
+          <div class="sig-hash">${c.finalReport.digitalSignature}</div>
+          <p style="font-size:12px; color:var(--ink-soft); margin:10px 0 0;">Signed by ${escapeHtml(c.finalReport.signedBy)} on ${fmtTime(c.finalReport.signedAt)}. This SHA‑256 signature is computed over the final case data and authenticates the report against tampering.</p>
+          <div style="margin-top:12px;"><span class="final-stamp">🔒 Final Report</span></div>
+        ` : `<div class="lock-note">Not yet signed — awaiting final authentication by the Deputy Director / Director.</div>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderCaseDetail(id){
+  saveDrafts(id);
+  const c = caseById(id);
+  const root = document.getElementById('caseDetailRoot');
+  if(!c){ root.innerHTML = '<div class="empty">Case not found.</div>'; return; }
+
+  let html = `
+    <div class="case-head">
+      <div><span class="cid">${c.id}</span><h1>${escapeHtml(c.title)}</h1></div>
+      <span class="stagepill ${isCaseComplete(c)?'complete':(canActOn(c)?'mine':'active')}" style="align-self:flex-start;">${pendingWithLabel(c)}</span>
+    </div>
+    <div class="case-desc">${escapeHtml(c.description)||'No description provided.'}</div>
+    ${renderStepper(c)}
+    ${renderEvidenceSection(c)}
+    ${c.tamperAlerts.length ? `<section class="block"><div class="block-head"><h2>Tamper Alerts</h2><div class="sub">Blocked modified uploads recorded against this case</div></div>${renderAlertsHtml(c)}</section>` : ''}
+    <section class="block">
+      <div class="block-head"><h2>Merkle Tree</h2><div class="sub">Built from this case's evidence fingerprints · recomputed from the current files</div></div>
+      <div class="root-card" style="margin-bottom:16px;"><div class="lbl">Merkle Root</div><div class="val" id="merkleRoot_${c.id}" style="white-space:pre-wrap;">…</div><div id="merklePill_${c.id}"></div></div>
+      <div class="tree-wrap"><svg id="merkleSvg_${c.id}" width="100%" height="320"></svg></div>
+    </section>
+    <section class="block">
+      <div class="block-head"><h2>Department Workflow</h2><div class="sub">Each department must submit and be approved in sequence before the case moves forward</div></div>
+      ${renderInvestigationPanel(c)}
+      ${renderCyberPanel(c)}
+      ${renderForensicPanel(c)}
+    </section>
+    <section class="block">
+      <div class="block-head">
+        <h2>Case Report</h2>
+        <div class="sub">${isCaseComplete(c) ? 'Final, digitally signed report' : 'Live preview — compiles fully once Digital Forensics gives final approval'}</div>
+        <button class="btn btn-ghost btn-sm" onclick="printCaseReport()">🖨 Print / Save as PDF</button>
+      </div>
+      ${buildCaseReportHtml(c)}
+    </section>
+  `;
+  root.innerHTML = html;
+  renderMerkleInto(id, 'merkleSvg_'+id, 'merkleRoot_'+id, 'merklePill_'+id);
+
+  // wire up the case-scoped dropzone if present
+  const dz = document.getElementById('dropzone_'+id);
+  if(dz){
+    const fi = document.getElementById('fileInput_'+id);
+    dz.addEventListener('click', ()=>fi.click());
+    fi.addEventListener('change', e=>{ handleCaseFiles([...e.target.files], id); fi.value=''; });
+    ['dragenter','dragover'].forEach(evt=>dz.addEventListener(evt, e=>{ e.preventDefault(); dz.classList.add('drag'); }));
+    ['dragleave','drop'].forEach(evt=>dz.addEventListener(evt, e=>{ e.preventDefault(); dz.classList.remove('drag'); }));
+    dz.addEventListener('drop', e=>{ const files=[...e.dataTransfer.files]; if(files.length) handleCaseFiles(files, id); });
+  }
+}
+function printCaseReport(){ window.print(); }
+
+/* ============================================================
+   VAULT / CUSTODY / STATS RENDERING
+============================================================ */
+function categoryFilter(){ return document.querySelector('.chip.active')?.dataset.filter || 'All'; }
+function evidenceCardHtml(ev){
+  const st = ev.status;
+  const badgeClass = st==='verified' ? 'verified' : (st==='tampered' ? 'tampered' : 'pending');
+  const badgeLabel = st==='verified' ? 'Verified' : (st==='tampered' ? 'Tampered' : 'Unverified');
+  const stamp = st!=='unverified' ? `<div class="mini-stamp ${badgeClass}">${st==='tampered'?'Tampered':'Verified'}</div>` : '';
+  return `
+  <div class="etag" data-id="${ev.id}">
+    ${stamp}
+    <div class="cat">${catIcon[ev.category]} ${ev.category}</div>
+    <div class="fn">${escapeHtml(ev.name)}</div>
+    <div class="caseid">${ev.id} · ${escapeHtml(caseLabel(ev.caseId))}</div>
+    <div class="hash mono">${shortHash(ev.hash)}</div>
+    <div class="foot"><span class="badge ${badgeClass}">${badgeLabel}</span><span style="font-size:11px; color:var(--ink-faint);">${(ev.size/1024).toFixed(1)} KB</span></div>
+    ${ev.tamperAttempts ? `<div style="font-size:11px; color:var(--tampered); font-weight:700; margin-top:8px;">🚨 ${ev.tamperAttempts} tampered re-upload attempt(s) blocked</div>` : ''}
+    <div class="actions"><button class="btn btn-ghost btn-sm" onclick="viewEvidence('${ev.id}')">View</button><button class="btn btn-ghost btn-sm" onclick="openCase('${ev.caseId}')">Open Case</button></div>
+  </div>`;
+}
+let vaultSeq = 0;
+async function renderVault(){
+  const seq = ++vaultSeq;
+  const grid = document.getElementById('vaultGrid');
+  const q = document.getElementById('searchInput').value.trim();
+  const filter = categoryFilter();
+  const caseFilter = document.getElementById('caseFilterVault').value;
+  let ids = null;
+  if(q){
+    try{ const r = await API.get('/api/search?q='+encodeURIComponent(q)); ids = new Set(r.ids); }   // Python Trie prefix search
+    catch(e){ ids = new Set(); }
+  }
+  if(seq !== vaultSeq) return;
+  let list = state.evidence.filter(ev => !ids || ids.has(ev.id));
+  if(filter!=='All') list = list.filter(ev=>ev.category===filter);
+  if(caseFilter) list = list.filter(ev=>ev.caseId===caseFilter);
+  list = list.slice().reverse();
+  grid.innerHTML = list.length ? list.map(evidenceCardHtml).join('') :
+    `<div class="empty" style="grid-column:1/-1;"><div class="ic">🔍</div>No evidence matches this search</div>`;
+}
+function renderCustody(){
+  const body = document.getElementById('logBody');
+  const caseFilter = document.getElementById('caseFilterCustody') ? document.getElementById('caseFilterCustody').value : '';
+  let rows = state.custody;
+  if(caseFilter) rows = rows.filter(c=>c.caseId===caseFilter);
+  const openTotal = state.cases.reduce((n,cs)=>n+openAlerts(cs).length,0);
+  const banner = document.getElementById('custodyBanner');
+  if(banner) banner.innerHTML = openTotal ? `<div class="alert-banner">🚨 ${openTotal} unresolved tamper alert(s) — affected cases cannot be sealed or forwarded until reviewed.</div>` : '';
+  body.innerHTML = rows.map(c=>`
+    <tr class="${c.action==='Tampered' ? 'row-tamper' : ''}">
+      <td><span class="act-tag ${c.action.replace(' ','-')}">${c.action}</span></td>
+      <td class="mono">${fmtTime(c.time)}</td>
+      <td>${c.user}</td>
+      <td class="mono" style="font-size:11.5px;">${c.caseId||'—'}</td>
+      <td>${c.evId ? `<span class="mono">${c.evId}</span> — ${escapeHtml(c.evName)}` : escapeHtml(c.evName)}</td>
+    </tr>`).join('') || `<tr><td colspan="5" style="text-align:center; color:var(--ink-faint); padding:30px;">No actions logged yet</td></tr>`;
+}
+function renderStats(){
+  document.getElementById('statTotal').textContent = state.evidence.length;
+  document.getElementById('statCases').textContent = state.cases.length;
+  document.getElementById('statComplete').textContent = state.cases.filter(isCaseComplete).length;
+  document.getElementById('statMine').textContent = state.cases.filter(canActOn).length;
+}
+function renderAll(){
+  renderStats();
+  renderCases();
+  refreshCaseDropdowns();
+  rebuildTrie();
+}
+
+/* ============================================================
+   EVENTS
+============================================================ */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>switchView(btn.dataset.view));
+});
+document.querySelectorAll('.chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    renderVault();
+  });
+});
+document.getElementById('searchInput').addEventListener('input', renderVault);
+(function(){
+  const dz = document.getElementById('dropzoneUp'), fi = document.getElementById('fileInputUp');
+  dz.addEventListener('click', ()=>{ if(!dz.classList.contains('disabled')) fi.click(); else showToast(document.getElementById('uploadToasts'),'err','Please select a case first.'); });
+  fi.addEventListener('change', e=>{ handleUploadTabFiles([...e.target.files]); fi.value=''; });
+  ['dragenter','dragover'].forEach(evt=>dz.addEventListener(evt, e=>{ e.preventDefault(); if(!dz.classList.contains('disabled')) dz.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(evt=>dz.addEventListener(evt, e=>{ e.preventDefault(); dz.classList.remove('drag'); }));
+  dz.addEventListener('drop', e=>{ const f=[...e.dataTransfer.files]; if(f.length) handleUploadTabFiles(f); });
+})();
+document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') attemptLogin(); });
+document.getElementById('caseTitleInput').addEventListener('keydown', e=>{ if(e.key==='Enter') createCase(); });
+
+(async function init(){
+  try{ await API.post('/api/reset'); await syncEvidence(); }          // fresh Python vault for a fresh page
+  catch(e){ document.getElementById('serverWarn').classList.add('show'); }
+})();
+refreshCaseDropdowns();
+</script>
+</body>
+</html>
